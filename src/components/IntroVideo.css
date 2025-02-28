@@ -1,0 +1,19 @@
+.video-container {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  video {
+    width: 60%;  /* Adjust this value for further size reduction */
+    height: auto; /* Maintain aspect ratio */
+    border-radius: 10px; /* Optional: Add rounded corners for a modern look */
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2); /* Subtle shadow effect */
+  }
+  

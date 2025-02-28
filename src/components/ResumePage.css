@@ -1,0 +1,134 @@
+/* ResumePage.css */
+
+/* Body styling */
+body {
+  background-color: #f4f7fa; /* Light background color for the entire page */
+  font-family: 'Roboto', sans-serif; /* Clean, modern font */
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container for Resume Page */
+.resume-container {
+  width: 80%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+  margin-top: 50px;
+  animation: fadeIn 1s ease-out; /* Fade-in effect */
+}
+
+/* Heading styling */
+.resume-container h2 {
+  font-size: 28px;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Form labels and inputs styling */
+label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  display: block;
+  color: #2c3e50;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  color: #555;
+  background-color: #f9f9f9;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  background-color: #fff;
+}
+
+/* Button styling */
+button {
+  background-color: #3498db;
+  color: white;
+  font-size: 16px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* Success message styling */
+.success-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2ecc71; /* Success green */
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 15px;
+  border-radius: 5px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  animation: slideUp 1s ease-out forwards, fadeOut 3s ease-out 2s; /* Slide-up and fade-out */
+}
+
+@keyframes slideUp {
+  0% {
+    top: -50px;
+    opacity: 0;
+  }
+  100% {
+    top: 20px;
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    top: -50px;
+  }
+}
+
+/* Input and button focus effects */
+input:focus, textarea:focus, button:focus {
+  outline: none;
+}
+
+/* Global animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
