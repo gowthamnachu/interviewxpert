@@ -10,9 +10,8 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
-  origin: [process.env.VERCEL_URL || 'http://localhost:3000', 'https://interviewxpert.vercel.app'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  origin: ['https://interviewxpert.vercel.app', process.env.VERCEL_URL, 'http://localhost:3000'],
+  credentials: true
 }));
 
 const connectDB = async (retryCount = 5) => {
@@ -344,9 +343,9 @@ app.delete('/api/certificates/:id', async (req, res) => {
 // Add static file serving
 app.use(express.static(path.join(__dirname, '../build')));
 
-// Root path handler
-app.get('/', (req, res) => {
-  res.json({ message: 'API is running' });
+// Update the catch-all route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build/index.html'));
 });
 
 // Error handling middleware
@@ -364,14 +363,6 @@ app.use((err, req, res, next) => {
     message: err.message
   });
 });
-
-// Add catch-all route for React router
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../build')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../build', 'index.html'));
-  });
-}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
