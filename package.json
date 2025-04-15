@@ -38,7 +38,7 @@
     "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
     "start:frontend": "react-scripts start",
     "start:backend": "cd backend && npm start",
-    "build": "CI=false DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "vercel-build": "CI=false npm run build",
