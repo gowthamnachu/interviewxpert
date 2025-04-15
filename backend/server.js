@@ -10,23 +10,32 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://interviewxpert.vercel.app' 
+    ? process.env.VERCEL_URL 
     : 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
-  .then(() => {
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI || process.env.MONGO_URI;
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      retryWrites: true,
+      w: 'majority',
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     console.log("✅ MongoDB Connected");
-  })
-  .catch(err => {
+  } catch (err) {
     console.error("❌ MongoDB Connection Error:", err);
-    console.log("Please ensure your IP address is whitelisted in MongoDB Atlas:");
-    console.log("1. Go to MongoDB Atlas dashboard");
-    console.log("2. Click Network Access under Security");
-    console.log("3. Click '+ ADD IP ADDRESS' and add your current IP");
-    process.exit(1);
-  });
+    // Retry connection
+    setTimeout(connectDB, 5000);
+  }
+};
+
+connectDB();
 
 const Question = require("./models/Question");
 const User = require("./models/User");
