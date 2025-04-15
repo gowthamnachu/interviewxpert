@@ -1,5 +1,2 @@
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://interviewxpert.vercel.app/api'
-  : 'http://localhost:3001/api';
-
+const API_BASE_URL = '/api';  // Use relative path for all environments
 export default API_BASE_URL;
