@@ -4,43 +4,30 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const path = require('path');
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true
-}));
+app.use(cors());
 
-const connectDB = async (retryCount = 5) => {
-  try {
-    const mongoURI = process.env.MONGODB_URI || process.env.MONGO_URI;
-    console.log("Attempting MongoDB connection...");
-    
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      retryWrites: true,
-      w: 'majority',
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-    });
-    console.log("✅ MongoDB Connected Successfully");
-  } catch (err) {
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
+  .then(() => {
+    console.log("✅ MongoDB Connected");
+  })
+  .catch(err => {
     console.error("❌ MongoDB Connection Error:", err);
-    if (retryCount > 0) {
-      console.log(`Retrying connection... (${retryCount} attempts remaining)`);
-      setTimeout(() => connectDB(retryCount - 1), 5000);
-    } else {
-      console.error("Failed to connect to MongoDB after multiple attempts");
-      process.exit(1);
+    if (!process.env.MONGO_URI) {
+      console.error("MONGO_URI environment variable is not set!");
+      console.log("Please check that:");
+      console.log("1. You have created a .env file in the project root");
+      console.log("2. The .env file contains MONGO_URI=your_mongodb_connection_string");
     }
-  }
-};
-
-connectDB();
+    console.log("\nIf using MongoDB Atlas, ensure your IP address is whitelisted:");
+    console.log("1. Go to MongoDB Atlas dashboard");
+    console.log("2. Click Network Access under Security");
+    console.log("3. Click '+ ADD IP ADDRESS' and add your current IP");
+    process.exit(1);
+  });
 
 const Question = require("./models/Question");
 const User = require("./models/User");
@@ -127,7 +114,7 @@ app.post("/api/login", async (req, res) => {
     // Create JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
-      process.env.JWT_SECRET || "your-secret-key",
+      "your-secret-key", // Replace with actual secret from env
       { expiresIn: "24h" }
     );
 
@@ -152,7 +139,7 @@ app.post("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const userId = decoded.userId;
 
     const resumeData = { ...req.body, userId };
@@ -183,7 +170,7 @@ app.get("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const resume = await Resume.findOne({ userId: decoded.userId });
     
     if (!resume) {
@@ -205,7 +192,7 @@ app.put("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const userId = decoded.userId;
 
     const updatedResume = await Resume.findOneAndUpdate(
@@ -231,7 +218,7 @@ app.delete("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const result = await Resume.findOneAndDelete({ userId: decoded.userId });
     
     if (!result) {
@@ -252,7 +239,7 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const { certificateId, domain, score } = req.body;
 
     // Check for existing certificate
@@ -321,7 +308,7 @@ app.get("/api/certificates/user", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const certificates = await CertificateModel.find({ userId: decoded.userId });
     res.json(certificates);
   } catch (error) {
@@ -340,31 +327,5 @@ app.delete('/api/certificates/:id', async (req, res) => {
   }
 });
 
-// Add static file serving
-app.use(express.static(path.join(__dirname, '../build')));
-
-// Update the catch-all route
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build/index.html'));
-});
-
-// Error handling middleware
-app.use((req, res, next) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: 'The requested resource was not found'
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message
-  });
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
