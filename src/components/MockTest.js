@@ -35,7 +35,6 @@ const MockTest = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
-  const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [loading, setLoading] = useState(true);
   const [testStarted, setTestStarted] = useState(false);
@@ -85,7 +84,6 @@ const MockTest = () => {
     } else {
       const finalAnalytics = calculateAnalytics();
       setAnalytics(finalAnalytics);
-      setScore(finalAnalytics.correct);
       setShowResults(true);
     }
   }, [currentQuestionIndex, questions.length, timeLeft, calculateAnalytics]);
