@@ -1,0 +1,214 @@
+.question-list-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.question-list-header {
+  margin-bottom: 2rem;
+}
+
+.question-list-header h2 {
+  color: #fff;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.domain-title {
+  font-weight: 600;
+}
+
+.question-count {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.search-wrapper {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0.5rem;
+  background: rgba(18, 18, 18, 0.9);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.search-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4),
+              inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(30, 30, 30, 0.9);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(40, 40, 40, 0.8);
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus-within {
+  border-color: rgba(70, 70, 70, 0.8);
+  background: rgba(35, 35, 35, 0.95);
+  box-shadow: 0 0 20px rgba(52, 152, 219, 0.1);
+}
+
+.search-icon {
+  color: #666666;
+  margin-right: 1rem;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}
+
+.search-bar:focus-within .search-icon {
+  color: rgba(52, 152, 219, 0.9);
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  color: #c0c0c0;
+  caret-color: #c0c0c0;
+  width: 100%;
+  font-size: 1rem;
+  padding: 0.2rem 0;
+  outline: none;
+  letter-spacing: 0.3px;
+  -webkit-text-fill-color: #c0c0c0;
+}
+
+.search-input::placeholder {
+  color: #666666;
+  -webkit-text-fill-color: #666666;
+}
+
+.search-input:-webkit-autofill,
+.search-input:-webkit-autofill:hover,
+.search-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+  -webkit-text-fill-color: #c0c0c0;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.clear-search {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666666;
+  background: rgba(40, 40, 40, 0.5);
+  border: none;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  margin-left: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  padding: 0;
+  position: relative;
+}
+
+.clear-search::before {
+  content: '×';
+  position: relative;
+  top: -1px;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.clear-search:hover {
+  color: #c0c0c0;
+  background: rgba(70, 70, 70, 0.8);
+  transform: scale(1.1);
+}
+
+.clear-search:active {
+  transform: scale(0.95);
+}
+
+.questions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.question-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.question-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.question-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.question-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.question-number {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.question-title {
+  color: #fff;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.keyword-tag {
+  background: rgba(52, 152, 219, 0.2);
+  color: #fff;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.keyword-tag.highlight {
+  background: rgba(46, 204, 113, 0.3);
+}
+
+mark {
+  background: rgba(241, 196, 15, 0.3);
+  color: #fff;
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+}

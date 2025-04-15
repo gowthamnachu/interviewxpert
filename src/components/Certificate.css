@@ -1,0 +1,32 @@
+.certificate-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.download-certificate-btn {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2c7a7b 0%, #38b2ac 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(56, 178, 172, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.download-certificate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(56, 178, 172, 0.4);
+  background: linear-gradient(135deg, #38b2ac 0%, #2c7a7b 100%);
+}
+
+.download-certificate-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(56, 178, 172, 0.3);
+}

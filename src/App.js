@@ -11,6 +11,9 @@ import Navbar from "./components/Navbar";
 import TakeInterview from "./components/TakeInterview";
 import Footer from "./components/Footer";
 import IntroVideo from "./components/IntroVideo";
+import XBot from "./components/XBot";
+import ExpertAI from "./components/ExpertAI";
+import MockTest from "./components/MockTest";
 import "./App.css";
 
 const App = () => {
@@ -48,8 +51,11 @@ const App = () => {
             <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
             <Route path="/build-resume" element={isLoggedIn ? <ResumePage /> : <Navigate to="/login" />} />
             <Route path="/take-interview" element={isLoggedIn ? <TakeInterview /> : <Navigate to="/login" />} />
+            <Route path="/expert-ai" element={isLoggedIn ? <ExpertAI /> : <Navigate to="/login" />} />
+            <Route path="/mock-test" element={isLoggedIn ? <MockTest /> : <Navigate to="/login" />} />
           </Routes>
           <Footer />
+          <XBot />
         </>
       )}
     </Router>

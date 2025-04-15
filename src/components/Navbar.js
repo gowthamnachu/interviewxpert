@@ -8,12 +8,15 @@ const Navbar = ({ isLoggedIn, handleLogout }) => {
         <Link to="/">InterviewXpert</Link>
       </div>
       <div className="links">
-        <Link to="/select-domain">Prepare</Link>
         {isLoggedIn ? (
           <>
+            <Link to="/">Home</Link>
+            <Link to="/select-domain">Prepare</Link>
             <Link to="/profile">Profile</Link>
             <Link to="/take-interview">Take Interview</Link>
-            <Link to="/build-resume">Build Resume</Link> {/* Added Build Resume Link */}
+            <Link to="/mock-test">Mock Test</Link>
+            <Link to="/build-resume">Build Resume</Link>
+            <Link to="/expert-ai">Expert AI</Link>
             <button onClick={handleLogout}>Logout</button>
           </>
         ) : (

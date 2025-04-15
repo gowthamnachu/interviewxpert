@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf"; // jsPDF library to generate PDF
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./ResumePage.css"; // Import the CSS for animations and styling
 
 const ResumePage = () => {
   const navigate = useNavigate(); // useNavigate for page redirection
+  const location = useLocation();
+  const isEditing = location.state?.isEditing;
+  const resumeData = location.state?.resumeData;
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -21,6 +25,47 @@ const ResumePage = () => {
   const predefinedSkills = "JavaScript, React, Node.js, HTML, CSS, Problem Solving, Teamwork, Communication, Project Management";
   const awards = "Best Developer Award - 2021, Employee of the Year - 2020";
 
+  useEffect(() => {
+    if (isEditing && resumeData) {
+      setName(resumeData.name || "");
+      setEmail(resumeData.email || "");
+      setPhone(resumeData.phone || "");
+      setEducation(resumeData.education || "");
+      setExperience(resumeData.experience || "");
+      setSkills(resumeData.skills || "");
+      setLanguages(resumeData.languages || "");
+      setVolunteerExperience(resumeData.volunteerExperience || "");
+      if (resumeData.photo) setPhoto(resumeData.photo);
+    } else {
+      fetchResume();
+    }
+  }, [isEditing, resumeData]);
+
+  const fetchResume = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:3001/api/resume", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data) {
+        setName(data.name || "");
+        setEmail(data.email || "");
+        setPhone(data.phone || "");
+        setEducation(data.education || "");
+        setExperience(data.experience || "");
+        setSkills(data.skills || "");
+        setLanguages(data.languages || "");
+        setVolunteerExperience(data.volunteerExperience || "");
+        if (data.photo) setPhoto(data.photo);
+      }
+    } catch (error) {
+      console.error("Error fetching resume:", error);
+    }
+  };
+
   // Handle photo upload
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -30,12 +75,12 @@ const ResumePage = () => {
   };
 
   // Handle PDF generation and store in localStorage
-  const handleDownloadResume = () => {
+  const handleDownloadResume = async () => {
     const doc = new jsPDF();
 
     // Add the profile picture if it exists
     if (photo) {
-      doc.addImage(photo, "JPEG", 15, 15, 50, 50); // Image position and size
+      doc.addImage(photo, "JPEG", 150, 15, 50, 50); // Image position and size
     }
 
     // Title and Header Section
@@ -136,118 +181,170 @@ const ResumePage = () => {
     // Divider line
     doc.line(20, 300, 190, 300);
 
-    // Save the PDF as a file
-    const resumeFileName = `${name}_resume.pdf`;
-    doc.save(resumeFileName);
+    // Generate base64 PDF data
+    const pdfBase64 = doc.output('base64');
+    const pdfDataUri = `data:application/pdf;base64,${pdfBase64}`;
 
-    // Store the resume data in localStorage
-    localStorage.setItem("resumeData", JSON.stringify({
-      name, email, phone, education, experience, skills, languages, volunteerExperience, photo
-    }));
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:3001/api/resume", {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          education,
+          experience,
+          skills,
+          languages,
+          volunteerExperience,
+          photo,
+          pdfData: pdfDataUri // Store with proper data URI format
+        })
+      });
 
-    // Show success message after creating the resume
-    setMessage("Resume Created Successfully!");
-    
-    // Redirect after the message is shown
-    setTimeout(() => {
-      navigate("/"); // Redirect to HomePage
-      setMessage(""); // Clear the success message
-    }, 5000); // 5 seconds delay for the message
+      if (response.ok) {
+        setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
+        // Save local copy
+        doc.save(`${name}_resume.pdf`);
+        setTimeout(() => {
+          navigate("/profile");
+          setMessage("");
+        }, 3000);
+      } else {
+        throw new Error('Failed to save resume');
+      }
+    } catch (error) {
+      console.error("Error saving resume:", error);
+      setMessage("Failed to save resume");
+    }
   };
 
   return (
     <div className="resume-container">
-      <h2>Build Your Resume</h2>
+      <h2>{isEditing ? "Edit Your Resume" : "Create Your Professional Resume"}</h2>
       <form>
-        <label>
-          Name:
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Email:
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Phone:
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Education:
-          <textarea
-            value={education}
-            onChange={(e) => setEducation(e.target.value)}
-            placeholder="Enter your educational background"
-            required
-          />
-        </label>
-        <label>
-          Work Experience:
-          <textarea
-            value={experience}
-            onChange={(e) => setExperience(e.target.value)}
-            placeholder="Describe your work experience"
-            required
-          />
-        </label>
-        <label>
-          Skills:
-          <textarea
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            placeholder="List your skills"
-            required
-          />
-        </label>
-        <label>
-          Languages:
-          <textarea
-            value={languages}
-            onChange={(e) => setLanguages(e.target.value)}
-            placeholder="Languages you speak"
-          />
-        </label>
-        <label>
-          Volunteer Experience:
-          <textarea
-            value={volunteerExperience}
-            onChange={(e) => setVolunteerExperience(e.target.value)}
-            placeholder="Describe any volunteer work"
-          />
-        </label>
-        <label>
-          Profile Photo:
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-          />
-        </label>
+        <div className="form-section">
+          <label>
+            Profile Photo
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="file-input"
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Full Name
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., John Doe"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Email Address
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g., john@example.com"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Phone Number
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g., +1 234 567 8900"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Education
+            <textarea
+              value={education}
+              onChange={(e) => setEducation(e.target.value)}
+              placeholder="Describe your educational background, including degrees, institutions, and graduation years"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Professional Experience
+            <textarea
+              value={experience}
+              onChange={(e) => setExperience(e.target.value)}
+              placeholder="Detail your work experience, including company names, positions, and key achievements"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Technical Skills
+            <textarea
+              value={skills}
+              onChange={(e) => setSkills(e.target.value)}
+              placeholder="List your technical skills, frameworks, and tools you're proficient in"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Languages
+            <textarea
+              value={languages}
+              onChange={(e) => setLanguages(e.target.value)}
+              placeholder="List languages you speak and your proficiency level"
+            />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <label>
+            Volunteer Experience
+            <textarea
+              value={volunteerExperience}
+              onChange={(e) => setVolunteerExperience(e.target.value)}
+              placeholder="Share your volunteer work and community involvement"
+            />
+          </label>
+        </div>
 
         <button
           type="button"
           onClick={handleDownloadResume}
           disabled={!name || !email || !phone || !education || !experience || !skills}
         >
-          Download Resume
+          {isEditing ? "Update Resume" : "Generate Professional Resume"}
         </button>
       </form>
-
-      {/* Success Message */}
       {message && <div className="success-message">{message}</div>}
     </div>
   );
