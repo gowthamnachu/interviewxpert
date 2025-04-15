@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run netlify-build"
   publish = "build"
 
 [[redirects]]
@@ -14,3 +14,4 @@
 
 [build.environment]
   CI = "false"
+  NODE_VERSION = "18"
