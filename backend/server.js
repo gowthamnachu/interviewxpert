@@ -9,29 +9,34 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.VERCEL_URL 
-    : 'http://localhost:3000',
+  origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
-const connectDB = async () => {
+const connectDB = async (retryCount = 5) => {
   try {
     const mongoURI = process.env.MONGODB_URI || process.env.MONGO_URI;
+    console.log("Attempting MongoDB connection...");
+    
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       retryWrites: true,
       w: 'majority',
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
-    console.log("✅ MongoDB Connected");
+    console.log("✅ MongoDB Connected Successfully");
   } catch (err) {
     console.error("❌ MongoDB Connection Error:", err);
-    // Retry connection
-    setTimeout(connectDB, 5000);
+    if (retryCount > 0) {
+      console.log(`Retrying connection... (${retryCount} attempts remaining)`);
+      setTimeout(() => connectDB(retryCount - 1), 5000);
+    } else {
+      console.error("Failed to connect to MongoDB after multiple attempts");
+      process.exit(1);
+    }
   }
 };
 
