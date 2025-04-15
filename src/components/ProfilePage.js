@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ProfilePage.css";
 import { FaUser, FaEnvelope, FaCalendar, FaFileAlt, FaCertificate, FaTrash } from "react-icons/fa";
+import config from '../config';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const ProfilePage = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/api/resume`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -58,7 +59,7 @@ const ProfilePage = () => {
   const fetchCertificates = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch('http://localhost:3001/api/certificates/user', {
+      const response = await fetch(`${config.apiUrl}/api/certificates/user`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -89,7 +90,7 @@ const ProfilePage = () => {
   const handleDeleteResume = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/api/resume`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
@@ -116,7 +117,7 @@ const ProfilePage = () => {
 
   const handleDeleteCertificate = async (certId) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/certificates/${certId}`, {
+      const response = await fetch(`${config.apiUrl}/api/certificates/${certId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
