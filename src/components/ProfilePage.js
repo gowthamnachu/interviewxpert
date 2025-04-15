@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ProfilePage.css";
-import { FaUser, FaEnvelope, FaCalendar, FaFileAlt } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaCalendar, FaFileAlt, FaCertificate, FaTrash } from "react-icons/fa";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ const ProfilePage = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [certificates, setCertificates] = useState([]);
 
   const username = localStorage.getItem("userUsername");
   const email = localStorage.getItem("userEmail");
@@ -21,6 +22,7 @@ const ProfilePage = () => {
       navigate("/login");
     }
     fetchResume();
+    fetchCertificates();
   }, [navigate]);
 
   const fetchResume = async () => {
@@ -50,6 +52,22 @@ const ProfilePage = () => {
       setError(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCertificates = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch('http://localhost:3001/api/certificates/user', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setCertificates(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching certificates:', error);
+      setCertificates([]);
     }
   };
 
@@ -96,6 +114,29 @@ const ProfilePage = () => {
     navigate('/build-resume', { state: { isEditing: true, resumeData: resume } });
   };
 
+  const handleDeleteCertificate = async (certId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/certificates/${certId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        setCertificates(certificates.filter(cert => cert._id !== certId));
+        setMessage('Certificate deleted successfully');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        throw new Error('Failed to delete certificate');
+      }
+    } catch (error) {
+      console.error('Error deleting certificate:', error);
+      setMessage('Error deleting certificate');
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   return (
     <div className="profile-page">
       <div className="profile-container">
@@ -118,6 +159,12 @@ const ProfilePage = () => {
               onClick={() => setActiveTab('resume')}
             >
               Resume
+            </button>
+            <button 
+              className={`tab ${activeTab === 'certificates' ? 'active' : ''}`}
+              onClick={() => setActiveTab('certificates')}
+            >
+              Certificates
             </button>
           </div>
         </div>
@@ -193,6 +240,35 @@ const ProfilePage = () => {
                     </button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'certificates' && (
+              <div className="profile-section">
+                <h3>My Certificates</h3>
+                <div className="certificates-grid">
+                  {Array.isArray(certificates) && certificates.length > 0 ? (
+                    certificates.map((cert) => (
+                      <div key={cert.certificateId} className="certificate-card">
+                        <FaCertificate className="certificate-icon" />
+                        <div className="certificate-info">
+                          <h4>{cert.domain}</h4>
+                          <p>Score: {cert.score}%</p>
+                          <p>Date: {new Date(cert.date).toLocaleDateString()}</p>
+                          <p className="certificate-id">ID: {cert.certificateId}</p>
+                          <button 
+                            className="delete-btn"
+                            onClick={() => handleDeleteCertificate(cert._id)}
+                          >
+                            <FaTrash /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No certificates found</p>
+                  )}
+                </div>
               </div>
             )}
           </>

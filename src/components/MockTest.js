@@ -45,53 +45,50 @@ const MockTest = () => {
     unanswered: 0,
     timePerQuestion: []
   });
+  const [userName, setUserName] = useState("");
+  const [showNameInput, setShowNameInput] = useState(false);
 
   const calculateAnalytics = useCallback(() => {
-    if (!questions || questions.length === 0) {
-      return {
-        accuracy: 0,
-        avgResponseTime: 0,
-        correctAnswers: 0,
-        totalQuestions: 0
-      };
-    }
-
-    const totalQuestions = questions.length;
-    const correctAnswers = questions.filter(q => q.isCorrect).length;
-    const accuracy = (correctAnswers / totalQuestions) * 100;
-    const avgResponseTime = questions.reduce((acc, q) => acc + (q.responseTime || 0), 0) / totalQuestions;
+    const correct = Object.entries(selectedAnswers).filter(
+      ([index, answer]) => answer === questions[index]?.correctOption
+    ).length;
+    
+    const incorrect = Object.entries(selectedAnswers).filter(
+      ([index, answer]) => answer !== questions[index]?.correctOption
+    ).length;
+    
+    const unanswered = questions.length - Object.keys(selectedAnswers).length;
+    
+    const timePerQuestion = analytics.timePerQuestion || new Array(questions.length).fill(0);
     
     return {
-      accuracy,
-      avgResponseTime,
-      correctAnswers,
-      totalQuestions
+      correct,
+      incorrect,
+      unanswered,
+      timePerQuestion,
+      totalQuestions: questions.length
     };
-  }, [questions]);
-
-  const calculateScore = useCallback(() => {
-    let totalScore = 0;
-    questions.forEach((question, index) => {
-      if (selectedAnswers[index] === question.correctOption) {
-        totalScore++;
-      }
-    });
-    setScore(totalScore);
-  }, [questions, selectedAnswers]);
+  }, [questions, selectedAnswers, analytics.timePerQuestion]);
 
   const handleNextQuestion = useCallback(() => {
-    const analytics = calculateAnalytics();
-    setAnalytics(analytics);
-    calculateScore();
-    
+    // Update time taken for current question
+    setAnalytics(prev => ({
+      ...prev,
+      timePerQuestion: prev.timePerQuestion.map((time, idx) => 
+        idx === currentQuestionIndex ? 60 - timeLeft : time
+      )
+    }));
+
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex(prev => prev + 1);
       setTimeLeft(60);
     } else {
-      calculateScore();
+      const finalAnalytics = calculateAnalytics();
+      setAnalytics(finalAnalytics);
+      setScore(finalAnalytics.correct);
       setShowResults(true);
     }
-  }, [currentQuestionIndex, questions.length, calculateScore, calculateAnalytics]);
+  }, [currentQuestionIndex, questions.length, timeLeft, calculateAnalytics]);
 
   const fetchQuestions = useCallback(async () => {
     try {
@@ -137,6 +134,13 @@ const MockTest = () => {
   const startTest = () => {
     setTestStarted(true);
     setTimeLeft(60);
+    setAnalytics({
+      correct: 0,
+      incorrect: 0,
+      unanswered: 0,
+      timePerQuestion: new Array(questions.length).fill(0),
+      totalQuestions: questions.length
+    });
   };
 
   const handleAnswerSelect = (optionIndex) => {
@@ -149,6 +153,11 @@ const MockTest = () => {
   const navigateToQuestion = (index) => {
     setCurrentQuestionIndex(index);
     setTimeLeft(60);
+  };
+
+  const handleNameSubmit = (e) => {
+    e.preventDefault();
+    setShowNameInput(false);
   };
 
   if (loading || !questions || questions.length === 0) {
@@ -209,20 +218,31 @@ const MockTest = () => {
     return (
       <div className="mock-test-container">
         <div className="main-content">
-          <div className="question-navigation">
-            <div className="question-numbers">
-              {questions?.map((_, index) => (
-                <div
-                  key={index}
-                  className={`question-number ${index === currentQuestionIndex ? 'active' : ''} 
-                            ${selectedAnswers[index] !== undefined ? 'answered' : ''}`}
-                  onClick={() => navigateToQuestion(index)}
-                  role="button"
-                  aria-label={`Question ${index + 1}`}
-                >
-                  {index + 1}
-                </div>
-              ))}
+          <div className="sidebar-trigger">
+            <div className="dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+
+          <div className="sidebar">
+            <div className="sidebar-header">
+              <h3>{selectedDomain}</h3>
+            </div>
+            <div className="sidebar-content">
+              <div className="questions-list">
+                {questions.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`question-item ${index === currentQuestionIndex ? 'active' : ''} 
+                              ${selectedAnswers[index] !== undefined ? 'answered' : ''}`}
+                    onClick={() => navigateToQuestion(index)}
+                  >
+                    Question {index + 1}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -271,8 +291,34 @@ const MockTest = () => {
   }
 
   if (showResults) {
-    const percentage = questions?.length ? ((score / questions.length) * 100).toFixed(2) : 0;
-    const averageTime = analytics?.timePerQuestion?.length 
+    if (!userName && !showNameInput) {
+      setShowNameInput(true);
+    }
+
+    if (showNameInput) {
+      return (
+        <div className="name-input-container">
+          <h2>Congratulations on completing the test!</h2>
+          <p>Please enter your full name to view your results and generate your certificate.</p>
+          <form onSubmit={handleNameSubmit}>
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              placeholder="Enter your full name"
+              required
+              className="name-input"
+            />
+            <button type="submit" className="submit-name-btn">
+              View Results
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    const percentage = ((analytics.correct / questions.length) * 100).toFixed(2);
+    const averageTime = analytics.timePerQuestion.length 
       ? (analytics.timePerQuestion.reduce((a, b) => a + b, 0) / analytics.timePerQuestion.length).toFixed(1)
       : 0;
     const performanceLevel = percentage >= 80 ? 'Excellent' : percentage >= 60 ? 'Good' : percentage >= 40 ? 'Fair' : 'Needs Improvement';
@@ -362,38 +408,31 @@ const MockTest = () => {
           </div>
         </div>
 
-        <div className="question-review">
+        <div className="detailed-review">
           <h3>Detailed Review</h3>
-          {questions?.map((question, index) => {
-            const isCorrect = selectedAnswers[index] === question?.correctOption;
-            const isUnanswered = selectedAnswers[index] === undefined;
-            
-            return question ? (
-              <div key={index} className={`review-item ${isUnanswered ? 'unanswered' : isCorrect ? 'correct' : 'incorrect'}`}>
-                <div className="question-header">
-                  <h4>Question {index + 1}</h4>
-                  <span className="time-taken">Time taken: {analytics?.timePerQuestion?.[index] || 0}s</span>
+          <div className="review-questions">
+            {questions.map((question, index) => (
+              <div key={index} className="review-question-box">
+                <div className="review-header">
+                  <span className="question-number">Question {index + 1}</span>
+                  {selectedAnswers[index] === question.correctOption ? (
+                    <FaCheckCircle className="correct-icon" />
+                  ) : (
+                    <FaTimesCircle className="incorrect-icon" />
+                  )}
                 </div>
-                <p className="question-text">{question?.text}</p>
-                <div className="answer-analysis">
-                  <div className="answer-item">
-                    <label>Your Answer:</label>
-                    <p className={`user-answer ${isUnanswered ? 'unanswered' : isCorrect ? 'correct' : 'incorrect'}`}>
-                      {isUnanswered ? 'Not answered' : question?.options?.[selectedAnswers[index]]}
-                    </p>
-                  </div>
-                  <div className="answer-item">
-                    <label>Correct Answer:</label>
-                    <p className="correct-answer">{question?.options?.[question?.correctOption]}</p>
-                  </div>
-                </div>
-                <div className="explanation">
-                  <h5>Explanation:</h5>
-                  <p>{question?.answer}</p>
+                <div className="review-content">
+                  <p className="question-text">{question.text}</p>
+                  <p className="selected-answer">
+                    Your Answer: {question.options[selectedAnswers[index]] || 'Not answered'}
+                  </p>
+                  <p className="correct-answer">
+                    Correct Answer: {question.options[question.correctOption]}
+                  </p>
                 </div>
               </div>
-            ) : null;
-          })}
+            ))}
+          </div>
         </div>
 
         <div className="recommendations">
@@ -415,7 +454,7 @@ const MockTest = () => {
         </div>
 
         <Certificate
-          userName="Test User" // Replace with actual user name
+          userName={userName}
           domain={selectedDomain}
           score={percentage}
           date={new Date().toLocaleDateString()}
@@ -427,63 +466,73 @@ const MockTest = () => {
   return (
     <div className="mock-test-container">
       <div className="main-content">
+        <div className="sidebar-trigger">
+          <div className="dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
 
-      <div className="question-navigation">
-        <div className="question-numbers">
-          {questions?.map((_, index) => (
-            <div
-              key={index}
-              className={`question-number ${index === currentQuestionIndex ? 'active' : ''} 
-                        ${selectedAnswers[index] !== undefined ? 'answered' : ''}`}
-              onClick={() => navigateToQuestion(index)}
-              role="button"
-              aria-label={`Question ${index + 1}`}
-            >
-              {index + 1}
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h3>{selectedDomain}</h3>
+          </div>
+          <div className="sidebar-content">
+            <div className="questions-list">
+              {questions.map((_, index) => (
+                <div
+                  key={index}
+                  className={`question-item ${index === currentQuestionIndex ? 'active' : ''} 
+                            ${selectedAnswers[index] !== undefined ? 'answered' : ''}`}
+                  onClick={() => navigateToQuestion(index)}
+                >
+                  Question {index + 1}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {questions[currentQuestionIndex] && (
-        <div className="question-container">
-          <div className="timer">
-            <div 
-              className="timer-fill" 
-              style={{ width: `${(timeLeft / 60) * 100}%` }}
-            />
-            <span className="timer-text">
-              <FaClock /> {timeLeft}s
-            </span>
           </div>
-
-          <h3 className="question-text">{questions[currentQuestionIndex]?.text}</h3>
-
-          <div className="options-list">
-            {questions[currentQuestionIndex]?.options?.map((option, index) => (
-              <button
-                key={index}
-                className={`option-button ${selectedAnswers[currentQuestionIndex] === index ? 'selected' : ''}`}
-                onClick={() => handleAnswerSelect(index)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-
-          <button className="next-button" onClick={handleNextQuestion}>
-            {currentQuestionIndex === questions.length - 1 ? (
-              <>
-                <FaCheckCircle /> Finish Test
-              </>
-            ) : (
-              <>
-                <FaCheckCircle /> Next Question
-              </>
-            )}
-          </button>
         </div>
-      )}
+
+        {questions[currentQuestionIndex] && (
+          <div className="question-container">
+            <div className="timer">
+              <div 
+                className="timer-fill" 
+                style={{ width: `${(timeLeft / 60) * 100}%` }}
+              />
+              <span className="timer-text">
+                <FaClock /> {timeLeft}s
+              </span>
+            </div>
+
+            <h3 className="question-text">{questions[currentQuestionIndex]?.text}</h3>
+
+            <div className="options-list">
+              {questions[currentQuestionIndex]?.options?.map((option, index) => (
+                <button
+                  key={index}
+                  className={`option-button ${selectedAnswers[currentQuestionIndex] === index ? 'selected' : ''}`}
+                  onClick={() => handleAnswerSelect(index)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+
+            <button className="next-button" onClick={handleNextQuestion}>
+              {currentQuestionIndex === questions.length - 1 ? (
+                <>
+                  <FaCheckCircle /> Finish Test
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle /> Next Question
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import IntroVideo from "./components/IntroVideo";
 import XBot from "./components/XBot";
 import ExpertAI from "./components/ExpertAI";
 import MockTest from "./components/MockTest";
+import VerifyCertificate from "./components/VerifyCertificate";
 import "./App.css";
 
 const App = () => {
@@ -53,6 +54,7 @@ const App = () => {
             <Route path="/take-interview" element={isLoggedIn ? <TakeInterview /> : <Navigate to="/login" />} />
             <Route path="/expert-ai" element={isLoggedIn ? <ExpertAI /> : <Navigate to="/login" />} />
             <Route path="/mock-test" element={isLoggedIn ? <MockTest /> : <Navigate to="/login" />} />
+            <Route path="/verify-certificate" element={<VerifyCertificate />} />
           </Routes>
           <Footer />
           <XBot />

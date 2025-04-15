@@ -335,6 +335,69 @@
   background: #cc0000;
 }
 
+.certificates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.certificate-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.certificate-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.certificate-icon {
+  font-size: 2rem;
+  color: #4C9D9B;
+}
+
+.certificate-info h4 {
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.certificate-info p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0.25rem 0;
+}
+
+.certificate-id {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #4C9D9B !important;
+}
+
+.delete-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+  background: rgba(244, 67, 54, 0.2);
+  transform: translateY(-2px);
+}
+
 @keyframes fadeSlideUp {
   from {
     opacity: 0;

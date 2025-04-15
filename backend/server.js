@@ -26,6 +26,31 @@ mongoose.connect(process.env.MONGO_URI)
 const Question = require("./models/Question");
 const User = require("./models/User");
 const Resume = require("./models/Resume");
+const Certificate = require("./models/Certificate"); // Add this line
+
+// Create Certificate Schema
+const certificateSchema = new mongoose.Schema({
+  certificateId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  userName: String,
+  fullName: String,
+  domain: String,
+  score: Number,
+  date: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const CertificateModel = mongoose.model('Certificate', certificateSchema);
 
 // API to Fetch Questions
 app.get("/api/questions", async (req, res) => {
@@ -197,6 +222,102 @@ app.delete("/api/resume", async (req, res) => {
     res.json({ message: "Resume deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete resume" });
+  }
+});
+
+// Certificate routes
+app.post('/api/certificates', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, "your-secret-key");
+    const { certificateId, domain, score } = req.body;
+
+    // Check for existing certificate
+    const existingCert = await CertificateModel.findOne({ 
+      userId: decoded.userId,
+      domain: domain 
+    });
+
+    if (existingCert) {
+      // Update only if new score is higher
+      if (score > existingCert.score) {
+        const updatedCert = await CertificateModel.findByIdAndUpdate(
+          existingCert._id,
+          {
+            score,
+            certificateId,
+            date: new Date()
+          },
+          { new: true }
+        );
+        return res.json(updatedCert);
+      }
+      return res.json(existingCert);
+    }
+
+    // Create new certificate
+    const newCertificate = new CertificateModel({
+      certificateId,
+      userId: decoded.userId,
+      userName: req.body.userName,
+      fullName: req.body.fullName,
+      domain,
+      score,
+      date: new Date()
+    });
+
+    await newCertificate.save();
+    res.json(newCertificate);
+  } catch (error) {
+    console.error("Certificate save error:", error);
+    res.status(500).json({ error: error.message || 'Error saving certificate' });
+  }
+});
+
+app.get("/api/certificates/verify/:id", async (req, res) => {
+  try {
+    const certificate = await CertificateModel.findOne({ 
+      certificateId: req.params.id 
+    });
+    
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    res.json(certificate);
+  } catch (error) {
+    console.error("Certificate verification error:", error);
+    res.status(500).json({ error: "Failed to verify certificate" });
+  }
+});
+
+app.get("/api/certificates/user", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+
+    const decoded = jwt.verify(token, "your-secret-key");
+    const certificates = await CertificateModel.find({ userId: decoded.userId });
+    res.json(certificates);
+  } catch (error) {
+    console.error("Certificate fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch certificates" });
+  }
+});
+
+// Add delete certificate endpoint
+app.delete('/api/certificates/:id', async (req, res) => {
+  try {
+    await CertificateModel.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Certificate deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting certificate' });
   }
 });
 
