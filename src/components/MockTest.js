@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaClock, FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
 import Certificate from "./Certificate";
-import config from '../config';
 import "./MockTest.css";
 
 const MockTest = () => {
@@ -92,7 +91,7 @@ const MockTest = () => {
   const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${config.apiUrl}/api/questions?domain=${selectedDomain}`);
+      const response = await axios.get(`http://localhost:3001/api/questions?domain=${selectedDomain}`);
       const mockQuestions = response.data.filter(q => q.isMockQuestion);
       setQuestions(mockQuestions);
       setAnalytics(prev => ({...prev, timePerQuestion: new Array(mockQuestions.length).fill(0)}));
