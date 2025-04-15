@@ -4,12 +4,29 @@
     {
       "src": "backend/server.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "build" }
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "backend/server.js"
+    },
+    {
+      "src": "^/static/(.*)",
+      "dest": "build/static/$1"
+    },
+    {
+      "src": "/(.*)\\.(?:ico|png|jpg|jpeg|gif|svg)$",
+      "dest": "build/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "build/index.html"
     }
   ]
 }

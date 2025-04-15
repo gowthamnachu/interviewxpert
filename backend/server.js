@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const path = require('path');
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -338,6 +339,19 @@ app.delete('/api/certificates/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error deleting certificate' });
   }
+});
+
+// Add static file serving
+app.use(express.static(path.join(__dirname, '../build')));
+
+// Add root route handler
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build', 'index.html'));
+});
+
+// Add catch-all route for React router
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3001;
