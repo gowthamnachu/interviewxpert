@@ -344,9 +344,25 @@ app.delete('/api/certificates/:id', async (req, res) => {
 // Add static file serving
 app.use(express.static(path.join(__dirname, '../build')));
 
-// Add root route handler
+// Root path handler
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build', 'index.html'));
+  res.json({ message: 'API is running' });
+});
+
+// Error handling middleware
+app.use((req, res, next) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'The requested resource was not found'
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message
+  });
 });
 
 // Add catch-all route for React router
@@ -354,5 +370,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../build', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
