@@ -55,6 +55,8 @@ const App = () => {
             <Route path="/expert-ai" element={isLoggedIn ? <ExpertAI /> : <Navigate to="/login" />} />
             <Route path="/mock-test" element={isLoggedIn ? <MockTest /> : <Navigate to="/login" />} />
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
+            <Route path="/verify-certificate/:certificateId" element={<VerifyCertificate />} />
+            <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
           </Routes>
           <Footer />
           <XBot />

@@ -117,6 +117,26 @@ const HomePage = () => {
           </button>
         </div>
       </div>
+
+      <div className="developers-section animate-on-scroll">
+        <h2>Meet Our Developers</h2>
+        <div className="developers-grid">
+          <div className="developer-card">
+            <h3>Nachu Gowtham</h3>
+            <p className="developer-role">Full Stack Developer</p>
+            <p className="developer-description">
+              Developer of InterviewXpert.
+            </p>
+          </div>
+          <div className="developer-card">
+            <h3>Marupaka Snigdha Sharma</h3>
+            <p className="developer-role">Full Stack Developer</p>
+            <p className="developer-description">
+              Developer of InterviewXpert.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

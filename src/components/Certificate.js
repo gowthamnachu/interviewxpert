@@ -1,19 +1,75 @@
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import axios from 'axios';
+import QRCode from 'qrcode';
 import './Certificate.css';
+import { FaDownload, FaSpinner, FaSave, FaCheck } from 'react-icons/fa';
 
 const Certificate = ({ userName, domain, score, date }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savingError, setSavingError] = useState(null);
+  const downloadSteps = [
+    { id: 1, text: 'Generating Certificate...', icon: <FaSpinner className="spin" /> },
+    { id: 2, text: 'Saving to Server...', icon: <FaSave /> },
+    { id: 3, text: 'Preparing Download...', icon: <FaDownload /> },
+    { id: 4, text: 'Complete', icon: <FaCheck /> }
+  ];
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const calculateBadgeLevel = (score) => {
+    if (score >= 90) return 'Gold';
+    if (score >= 75) return 'Silver';
+    return 'Bronze';
+  };
 
   const generateCertificate = async () => {
     setLoading(true);
     setError(null);
-    const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    setSaving(false);
+    setSavingError(null);
+    setCurrentStep(1);
     
     try {
-      // Generate PDF first
+      // Step 1: Generate Certificate
+      setCurrentStep(1);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please login again.');
+      }
+
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      // Step 2: Save to Server
+      setCurrentStep(2);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await axios.post('http://localhost:3001/api/certificates', {
+        certificateId,
+        userId: decoded.userId,
+        userName,
+        fullName: userName,
+        domain,
+        score,
+        badgeLevel: calculateBadgeLevel(score),
+        issueDate: new Date(),
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.data) {
+        throw new Error('Failed to save certificate data');
+      }
+
+      // Step 3: Prepare Download
+      setCurrentStep(3);
+      await new Promise(resolve => setTimeout(resolve, 800));
       const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -28,15 +84,18 @@ const Certificate = ({ userName, domain, score, date }) => {
       doc.setFillColor(248, 249, 250);
       doc.rect(0, 0, 297, 40, 'F');
 
-      // Add decorative border
+      // Enhanced certificate design
       doc.setLineWidth(1.5);
       doc.setDrawColor(44, 122, 123);
       doc.rect(10, 10, 277, 190);
-      doc.setLineWidth(0.5);
-      doc.rect(12, 12, 273, 186);
-
-      // Remove logo section and readjust title positioning
+      
+      // Add watermark
+      doc.setFontSize(130);
+      doc.setTextColor(245, 245, 245);
       doc.setFont('helvetica', 'bold');
+      doc.text('VERIFIED', 148.5, 125, { align: 'center' });
+
+      // Certificate content
       doc.setFontSize(42);
       doc.setTextColor(44, 122, 123);
       doc.text('Certificate of Excellence', 148.5, 45, { align: 'center' });
@@ -69,16 +128,22 @@ const Certificate = ({ userName, domain, score, date }) => {
       doc.setTextColor(44, 122, 123);
       doc.text(domain, 148.5, 127, { align: 'center' });
 
+      // Add badge level with icon
+      doc.setFontSize(20);
+      doc.setTextColor(44, 122, 123);
+      const badgeLevel = calculateBadgeLevel(score);
+      doc.text(`${badgeLevel} Level Achievement`, 148.5, 140, { align: 'center' });
+
       // Add score with elegant styling
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(16);
       doc.setTextColor(90, 90, 90);
-      doc.text(`with an outstanding score of`, 148.5, 140, { align: 'center' });
+      doc.text(`with an outstanding score of`, 148.5, 152, { align: 'center' });
       
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(24);
       doc.setTextColor(44, 122, 123);
-      doc.text(`${score}%`, 148.5, 152, { align: 'center' });
+      doc.text(`${score}%`, 148.5, 164, { align: 'center' });
 
       // Add date with refined formatting
       doc.setFont('helvetica', 'italic');
@@ -88,43 +153,49 @@ const Certificate = ({ userName, domain, score, date }) => {
         day: 'numeric', 
         month: 'long', 
         year: 'numeric'
-      })}`, 148.5, 167, { align: 'center' });
+      })}`, 148.5, 179, { align: 'center' });
 
-      // Update verification text
-      doc.setFontSize(10);
-      doc.setTextColor(128, 128, 128);
-      doc.text(`Verify at: http://localhost:3000/verify-certificate`, 148.5, 185, { align: 'center' });
-      doc.text(`Certificate ID: ${certificateId}`, 148.5, 190, { align: 'center' });
-
-      // Save to backend
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required. Please login again.');
-      }
-
-      const decoded = JSON.parse(atob(token.split('.')[1]));
-      const userId = decoded.userId;
-
-      await axios.post('http://localhost:3001/api/certificates', {
-        certificateId,
-        userId,
-        userName,
-        fullName: userName,
-        domain,
-        score,
-        date,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // Generate QR code data URL
+      const verifyUrl = `https://interviewxpert.netlify.app/verify-certificate/${certificateId}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(verifyUrl, {
+        errorCorrectionLevel: 'H',
+        margin: 1,
+        width: 150,
+        color: {
+          dark: '#4C9D9B',
+          light: '#ffffff'
         }
       });
 
-      // Only save PDF if backend save was successful
+      // Add QR code to PDF
+      doc.addImage(qrCodeDataUrl, 'PNG', 240, 150, 30, 30);
+
+      // Additional metadata
+      doc.setFontSize(10);
+      doc.setTextColor(90, 90, 90);
+      doc.text(`Valid Until: ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()}`, 40, 180);
+      doc.text(`Certificate ID: ${certificateId}`, 40, 185);
+      doc.text(`Verify at: https://interviewxpert.netlify.app/verify-certificate/${certificateId}`, 40, 190);
+
+      // Step 4: Complete
+      setCurrentStep(4);
       doc.save(`${userName.replace(/\s+/g, '_')}_certificate.pdf`);
+      
+      // Reset after delay
+      setTimeout(() => {
+        setCurrentStep(0);
+      }, 2000);
+
     } catch (error) {
-      console.error('Error generating certificate:', error);
-      setError(error?.response?.data?.error || error.message || 'Failed to generate certificate');
+      console.error('Certificate generation error:', error);
+      const errorMessage = error.response?.data?.error || error.message;
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please login again.');
+      } else if (error.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError(`Failed to generate certificate: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -133,13 +204,31 @@ const Certificate = ({ userName, domain, score, date }) => {
   return (
     <div className="certificate-container">
       {error && <div className="error-message">{error}</div>}
+      {savingError && <div className="error-message">Server Error: {savingError}</div>}
+      
       <button 
         className="download-certificate-btn" 
         onClick={generateCertificate}
-        disabled={loading}
+        disabled={loading || saving}
       >
-        {loading ? 'Generating...' : 'Download Certificate'}
+        {loading ? 'Processing...' : 'Download Certificate'}
       </button>
+
+      {currentStep > 0 && (
+        <div className="download-steps">
+          {downloadSteps.map((step) => (
+            <div
+              key={step.id}
+              className={`step ${currentStep >= step.id ? 'active' : ''} 
+                         ${currentStep > step.id ? 'completed' : ''}`}
+            >
+              <div className="step-icon">{step.icon}</div>
+              <div className="step-text">{step.text}</div>
+              <div className="step-loader"></div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

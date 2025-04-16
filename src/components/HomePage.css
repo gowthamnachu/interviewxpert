@@ -208,6 +208,59 @@
   margin-bottom: 2rem;
 }
 
+.developers-section {
+  padding: 6rem 2rem;
+  text-align: center;
+  background: linear-gradient(165deg, rgba(76, 157, 155, 0.05) 0%, transparent 100%);
+}
+
+.developers-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 4rem;
+  color: var(--text-primary);
+}
+
+.developers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 3rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.developer-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(76, 157, 155, 0.1);
+  transition: all 0.3s ease;
+}
+
+.developer-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(76, 157, 155, 0.3);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.developer-card h3 {
+  font-size: 1.5rem;
+  color: #4C9D9B;
+  margin-bottom: 0.5rem;
+}
+
+.developer-role {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.developer-description {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 768px) {
   .main-tagline {
     font-size: 2.5rem;
@@ -240,5 +293,17 @@
 
   .action-section h2 {
     font-size: 2rem;
+  }
+
+  .developers-section {
+    padding: 4rem 1rem;
+  }
+
+  .developers-section h2 {
+    font-size: 2rem;
+  }
+
+  .developers-grid {
+    gap: 2rem;
   }
 }

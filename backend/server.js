@@ -48,12 +48,20 @@ const certificateSchema = new mongoose.Schema({
   },
   userName: String,
   fullName: String,
+  email: String,
   domain: String,
+  subDomain: String,
   score: Number,
-  date: {
+  grade: String,
+  issueDate: {
     type: Date,
     default: Date.now
-  }
+  },
+  expiryDate: Date,
+  issuer: String,
+  verificationUrl: String,
+  achievements: [String],
+  badgeLevel: String
 });
 
 const CertificateModel = mongoose.model('Certificate', certificateSchema);
@@ -240,49 +248,57 @@ app.post('/api/certificates', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, "your-secret-key");
-    const { certificateId, domain, score } = req.body;
+    const { certificateId, domain, score, userName, fullName } = req.body;
+
+    // Validate required fields
+    if (!certificateId || !domain || !score || !userName) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
     // Check for existing certificate
-    const existingCert = await CertificateModel.findOne({ 
-      userId: decoded.userId,
-      domain: domain 
-    });
-
+    const existingCert = await CertificateModel.findOne({ certificateId });
     if (existingCert) {
-      // Update only if new score is higher
-      if (score > existingCert.score) {
-        const updatedCert = await CertificateModel.findByIdAndUpdate(
-          existingCert._id,
-          {
-            score,
-            certificateId,
-            date: new Date()
-          },
-          { new: true }
-        );
-        return res.json(updatedCert);
-      }
-      return res.json(existingCert);
+      return res.status(409).json({ error: "Certificate ID already exists" });
     }
 
     // Create new certificate
     const newCertificate = new CertificateModel({
       certificateId,
       userId: decoded.userId,
-      userName: req.body.userName,
-      fullName: req.body.fullName,
+      userName,
+      fullName,
       domain,
       score,
-      date: new Date()
+      grade: calculateGrade(score),
+      issueDate: new Date(),
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      badgeLevel: calculateBadgeLevel(score),
+      verificationUrl: `${req.protocol}://${req.get('host')}/verify-certificate/${certificateId}`
     });
 
     await newCertificate.save();
-    res.json(newCertificate);
+    res.status(201).json(newCertificate);
+
   } catch (error) {
     console.error("Certificate save error:", error);
-    res.status(500).json({ error: error.message || 'Error saving certificate' });
+    res.status(500).json({ error: "Failed to save certificate" });
   }
 });
+
+function calculateGrade(score) {
+  if (score >= 90) return 'A+';
+  if (score >= 80) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 60) return 'C';
+  return 'D';
+}
+
+function calculateBadgeLevel(score) {
+  if (score >= 90) return 'Expert';
+  if (score >= 75) return 'Advanced';
+  if (score >= 60) return 'Intermediate';
+  return 'Beginner';
+}
 
 app.get("/api/certificates/verify/:id", async (req, res) => {
   try {
@@ -328,4 +344,9 @@ app.delete('/api/certificates/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log('====================================');
+  console.log(`🚀 Backend server running on port ${PORT}`);
+  console.log(`📑 API endpoints available at http://localhost:${PORT}/api`);
+  console.log('====================================');
+});

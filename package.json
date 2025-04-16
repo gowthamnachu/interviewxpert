@@ -5,6 +5,7 @@
   "private": true,
   "dependencies": {
     "@csstools/normalize.css": "^12.1.1",
+    "@netlify/functions": "^2.0.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -20,18 +21,21 @@
     "mongoose": "^7.6.0",
     "nodemailer": "^6.9.7",
     "postcss-normalize": "^13.0.1",
+    "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.0.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.11.0",
     "react-router-dom": "^6.17.0",
     "react-scripts": "5.0.1",
+    "serverless-http": "^3.2.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "concurrently \"cross-env PORT=3000 react-scripts start\" \"node backend/server.js\"",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:frontend": "cross-env PORT=3000 react-scripts start",
-    "start:backend": "node backend/server.js",
+    "start:backend": "cd backend && node server.js",
+    "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
