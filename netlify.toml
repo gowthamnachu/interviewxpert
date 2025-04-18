@@ -3,14 +3,16 @@
   functions = "netlify/functions"
   publish = "build"
 
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["mongoose"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[functions]
-  external_node_modules = ["express", "mongoose", "serverless-http"]
-  node_bundler = "esbuild"
-
-[build.environment]
-  NODE_VERSION = "16"
