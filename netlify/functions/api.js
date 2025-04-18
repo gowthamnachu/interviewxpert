@@ -10,8 +10,10 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: ['https://interviewxpert.netlify.app', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 // Database connection with connection pooling
