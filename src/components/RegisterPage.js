@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import "./Auth.css";
 
 const RegisterPage = () => {
@@ -51,30 +52,45 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://interviewxpertbackend.netlify.app/.netlify/functions/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      console.log('Attempting registration...');
+      const apiUrl = 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/register';
+      
+      const response = await axios({
+        method: 'post',
+        url: apiUrl,
+        data: {
           username,
           email,
           password
-        }),
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
 
-      const data = await response.json();
+      console.log('Registration response:', response.data);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+      if (response.data.message) {
+        setSuccessMessage(response.data.message);
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      } else {
+        throw new Error('Invalid response from server');
       }
-
-      setSuccessMessage("Account created successfully!");
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
     } catch (err) {
-      setError(err.message);
+      console.error('Registration error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
+      setError(
+        err.response?.data?.error || 
+        err.message || 
+        'Registration failed. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
