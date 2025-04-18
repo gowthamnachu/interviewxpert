@@ -53,37 +53,39 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const apiUrl = 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/register';
-      console.log('Registering with:', apiUrl);
-      
-      const response = await axios({
-        method: 'POST',
-        url: apiUrl,
-        data: {
+      const response = await axios.post(
+        'https://interviewxpertbackend.netlify.app/.netlify/functions/api/register',
+        {
           username,
           email,
           password
         },
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Origin': 'https://interviewxpert.netlify.app'
-        },
-        validateStatus: (status) => status < 500
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
 
-      console.log('Registration response:', response.data);
+      console.log('Registration response:', response);
 
-      if (response.status === 201 || response.status === 200) {
-        setSuccessMessage(response.data.message || "Account created successfully!");
+      if (response.data.message) {
+        setSuccessMessage(response.data.message);
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        throw new Error(response.data.error || 'Registration failed');
+        throw new Error('Registration failed');
       }
-
     } catch (err) {
-      console.error('Registration error:', err.response || err);
-      setError(err.response?.data?.error || err.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      setError(
+        err.response?.data?.error || 
+        'Registration failed. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }

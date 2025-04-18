@@ -111,6 +111,33 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
   }
 });
 
+app.post('/register', async (req, res) => {
+  try {
+    console.log('Register request received:', req.body);
+    const { username, email, password } = req.body;
+
+    // Validate input
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Check if user exists
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username or email already exists' });
+    }
+
+    // Create new user
+    const user = new User({ username, email, password });
+    await user.save();
+
+    res.status(201).json({ message: 'Registration successful' });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
 // Not found handler
 app.use('/.netlify/functions/api/*', (req, res) => {
   res.status(404).json({ error: `Cannot ${req.method} ${req.url}` });
