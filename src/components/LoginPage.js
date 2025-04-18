@@ -13,9 +13,8 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
-    // Use direct URL in development, Netlify function URL in production
-    const loginUrl = config.isDevelopment 
-      ? 'http://localhost:3001/api/login'
+    const loginUrl = process.env.NODE_ENV === 'production'
+      ? `${window.location.origin}${config.netlifyFunctionUrl}/login`
       : `${config.apiBaseUrl}/login`;
 
     try {
@@ -26,7 +25,6 @@ const LoginPage = ({ setIsLoggedIn }) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           usernameOrEmail,
           password
