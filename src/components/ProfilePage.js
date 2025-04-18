@@ -90,20 +90,20 @@ const ProfilePage = () => {
   const handleDeleteResume = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/resume`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
-      if (response.ok) {
-        setResume(null);
-        setMessage("Resume deleted successfully");
-        setTimeout(() => setMessage(""), 3000);
-      } else {
-        throw new Error("Failed to delete resume");
+      if (!response.ok) {
+        throw new Error(await response.text());
       }
+
+      setResume(null);
+      setMessage("Resume deleted successfully");
+      setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Error deleting resume:", error);
       setMessage("Failed to delete resume");
@@ -117,20 +117,20 @@ const ProfilePage = () => {
 
   const handleDeleteCertificate = async (certId) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/certificates/${certId}`, {
+      const response = await fetch(`${config.apiUrl}/certificates/${certId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      if (response.ok) {
-        setCertificates(certificates.filter(cert => cert._id !== certId));
-        setMessage('Certificate deleted successfully');
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        throw new Error('Failed to delete certificate');
+      if (!response.ok) {
+        throw new Error(await response.text());
       }
+
+      setCertificates(certificates.filter(cert => cert._id !== certId));
+      setMessage('Certificate deleted successfully');
+      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error deleting certificate:', error);
       setMessage('Error deleting certificate');
