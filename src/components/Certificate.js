@@ -46,7 +46,7 @@ const Certificate = ({ userName, domain, score, date }) => {
       // Step 2: Save to Server
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
-      const response = await axios.post(`${config.apiUrl}/certificates`, {
+      const response = await axios.post(`${config.apiUrl}/.netlify/functions/api/certificates`, {
         certificateId,
         userId: decoded.userId,
         userName,

@@ -29,7 +29,7 @@ const ProfilePage = () => {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${config.apiUrl}/certificates/user`, {
+      const response = await fetch(`${config.apiUrl}/.netlify/functions/api/certificates`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -37,7 +37,6 @@ const ProfilePage = () => {
       });
 
       if (response.status === 401) {
-        // Token is invalid
         localStorage.clear();
         navigate("/login");
         return;
@@ -223,7 +222,7 @@ const ProfilePage = () => {
   const handleDeleteCertificate = async (certId) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${config.apiUrl}/certificates/${certId}`, {
+      const response = await fetch(`${config.apiUrl}/.netlify/functions/api/certificates/${certId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
