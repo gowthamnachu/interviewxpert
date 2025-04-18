@@ -14,49 +14,61 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setError("");
 
     try {
-      const baseUrl = process.env.NODE_ENV === 'production'
-        ? 'https://interviewxpertbackend.netlify.app/.netlify/functions/api'
-        : 'http://localhost:3001/api';
-
-      console.log('Attempting login with URL:', `${baseUrl}/login`);
+      // Always use the Netlify function URL in production
+      const apiUrl = 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/login';
+      console.log('Login attempt:', { url: apiUrl, username: usernameOrEmail });
 
       const response = await axios({
         method: 'post',
-        url: `${baseUrl}/login`,
+        url: apiUrl,
         data: {
-          usernameOrEmail,
+          username: usernameOrEmail, // Changed to match backend expectation
+          email: usernameOrEmail,    // Send both for flexibility
           password
         },
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': 'https://interviewxpert.netlify.app'
         },
-        validateStatus: (status) => status < 500
+        timeout: 10000, // 10 second timeout
+        withCredentials: true
       });
 
-      console.log('Response:', response);
+      console.log('Raw server response:', response);
 
-      if (response.status !== 200) {
-        throw new Error(response.data.error || 'Login failed');
+      // Handle non-200 responses
+      if (response.status !== 200 || !response.data) {
+        console.error('Server response:', response);
+        throw new Error(response.data?.error || 'Invalid server response');
       }
 
-      const { data } = response;
-      
+      // Safely access response data
+      const { token, user } = response.data;
+      if (!token || !user) {
+        throw new Error('Invalid response format');
+      }
+
       // Store token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userUsername', data.user.username);
-      localStorage.setItem('userEmail', data.user.email);
-      localStorage.setItem('registrationDate', data.user.registrationDate);
+      localStorage.setItem('token', token);
+      localStorage.setItem('userUsername', user.username || '');
+      localStorage.setItem('userEmail', user.email || '');
+      localStorage.setItem('registrationDate', user.registrationDate || '');
       localStorage.setItem('isLoggedIn', 'true');
 
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      console.error('Login error:', err.response || err);
+      console.error('Login failed:', {
+        error: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
       setError(
+        err.response?.data?.message || 
         err.response?.data?.error || 
-        err.message || 
-        'Failed to connect to the server. Please try again.'
+        'Unable to connect to server. Please try again.'
       );
     }
   };
