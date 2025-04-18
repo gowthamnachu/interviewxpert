@@ -39,12 +39,6 @@ router.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ 
-        error: "All fields are required" 
-      });
-    }
-
     // Validate password strength
     const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
     if (!passwordRegex.test(password)) {
@@ -74,11 +68,7 @@ router.post("/register", async (req, res) => {
       message: "Registration successful. Please verify your email."
     });
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ 
-      error: "Registration failed",
-      message: error.message 
-    });
+    res.status(500).json({ error: "Registration failed" });
   }
 });
 

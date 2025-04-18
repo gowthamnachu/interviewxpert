@@ -4,7 +4,6 @@ import axios from 'axios';
 import QRCode from 'qrcode';
 import './Certificate.css';
 import { FaDownload, FaSpinner, FaSave, FaCheck } from 'react-icons/fa';
-import config from '../config';
 
 const Certificate = ({ userName, domain, score, date }) => {
   const [loading, setLoading] = useState(false);
@@ -46,7 +45,7 @@ const Certificate = ({ userName, domain, score, date }) => {
       // Step 2: Save to Server
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
-      const response = await axios.post(`${config.apiUrl}/certificates`, {
+      const response = await axios.post('http://localhost:3001/api/certificates', {
         certificateId,
         userId: decoded.userId,
         userName,

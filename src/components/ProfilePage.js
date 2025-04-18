@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ProfilePage.css";
 import { FaUser, FaEnvelope, FaCalendar, FaFileAlt, FaCertificate, FaTrash } from "react-icons/fa";
-import config from '../config';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -31,7 +30,7 @@ const ProfilePage = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
-      const response = await fetch(`${config.apiUrl}/resume`, {
+      const response = await fetch("http://localhost:3001/api/resume", {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -59,7 +58,7 @@ const ProfilePage = () => {
   const fetchCertificates = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${config.apiUrl}/certificates/user`, {
+      const response = await fetch('http://localhost:3001/api/certificates/user', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -90,20 +89,20 @@ const ProfilePage = () => {
   const handleDeleteResume = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${config.apiUrl}/resume`, {
+      const response = await fetch("http://localhost:3001/api/resume", {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+      if (response.ok) {
+        setResume(null);
+        setMessage("Resume deleted successfully");
+        setTimeout(() => setMessage(""), 3000);
+      } else {
+        throw new Error("Failed to delete resume");
       }
-
-      setResume(null);
-      setMessage("Resume deleted successfully");
-      setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Error deleting resume:", error);
       setMessage("Failed to delete resume");
@@ -117,20 +116,20 @@ const ProfilePage = () => {
 
   const handleDeleteCertificate = async (certId) => {
     try {
-      const response = await fetch(`${config.apiUrl}/certificates/${certId}`, {
+      const response = await fetch(`http://localhost:3001/api/certificates/${certId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
+      if (response.ok) {
+        setCertificates(certificates.filter(cert => cert._id !== certId));
+        setMessage('Certificate deleted successfully');
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        throw new Error('Failed to delete certificate');
       }
-
-      setCertificates(certificates.filter(cert => cert._id !== certId));
-      setMessage('Certificate deleted successfully');
-      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error deleting certificate:', error);
       setMessage('Error deleting certificate');

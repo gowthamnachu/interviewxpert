@@ -25,8 +25,6 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
@@ -361,15 +359,6 @@ app.delete('/api/certificates/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error deleting certificate' });
   }
-});
-
-// Add error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    error: "Internal server error",
-    message: err.message 
-  });
 });
 
 const PORT = process.env.PORT || 3001;

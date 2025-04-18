@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
-import config from '../config';
 import "./Auth.css";
 
 const RegisterPage = () => {
@@ -53,27 +51,28 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(
-        `${config.apiUrl}/register`,
-        {
+      const response = await fetch('http://localhost:3001/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           username,
           email,
           password
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        }
-      );
+        }),
+      });
 
-      if (response.status === 201) {
-        setSuccessMessage(response.data.message);
-        setTimeout(() => navigate("/login"), 2000);
-      } else {
-        throw new Error(response.data.error || 'Registration failed');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
       }
+
+      setSuccessMessage("Account created successfully!");
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
     } catch (err) {
       setError(err.message);
     } finally {
