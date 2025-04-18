@@ -1,15 +1,16 @@
 [build]
+  command = "npm run build"
   functions = "netlify/functions"
   publish = "build"
-
-[build.environment]
-  NODE_VERSION = "16"
-
-[functions]
-  external_node_modules = ["express", "mongoose"]
-  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[functions]
+  external_node_modules = ["express", "mongoose", "serverless-http"]
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "16"

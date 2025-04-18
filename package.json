@@ -28,14 +28,16 @@
     "react-icons": "^4.11.0",
     "react-router-dom": "^6.17.0",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "serverless-http": "^3.2.0",
+    "@netlify/functions": "^2.0.0"
   },
   "scripts": {
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:frontend": "cross-env PORT=3000 react-scripts start",
     "start:backend": "cd backend && node server.js",
     "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
-    "build": "react-scripts build",
+    "build": "react-scripts build && cp -r netlify/functions build/functions",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -58,7 +60,6 @@
     ]
   },
   "devDependencies": {
-    "@netlify/functions": "^3.1.2",
     "@types/npm": "^7.19.3",
     "ajv": "8.12.0",
     "ajv-keywords": "5.1.0",

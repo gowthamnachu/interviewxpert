@@ -71,5 +71,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Export handler
-exports.handler = serverless(app);
+// Ensure proper error handling for serverless environment
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Export the handler using proper module.exports
+module.exports.handler = serverless(app);
