@@ -78,116 +78,116 @@ const ResumePage = () => {
 
   // Handle PDF generation and store in localStorage
   const handleDownloadResume = async () => {
-    const doc = new jsPDF();
-
-    // Add the profile picture if it exists
-    if (photo) {
-      doc.addImage(photo, "JPEG", 150, 15, 50, 50); // Image position and size
-    }
-
-    // Title and Header Section
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Resume", 70, 20); // Add title
-
-    // Personal Information Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Name: ", 20, 60);
-    doc.setFontSize(12);
-    doc.text(name, 40, 60);
-
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Email: ", 20, 70);
-    doc.setFontSize(12);
-    doc.text(email, 40, 70);
-
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Phone: ", 20, 80);
-    doc.setFontSize(12);
-    doc.text(phone, 40, 80);
-
-    // Divider line
-    doc.setLineWidth(0.5);
-    doc.line(20, 85, 190, 85);
-
-    // Summary Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary:", 20, 100);
-    doc.setFontSize(12);
-    doc.text(summary, 20, 110, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 120, 190, 120);
-
-    // Education Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Education:", 20, 130);
-    doc.setFontSize(12);
-    doc.text(education || "Bachelor's in Computer Science", 20, 140, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 150, 190, 150);
-
-    // Work Experience Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Work Experience:", 20, 160);
-    doc.setFontSize(12);
-    doc.text(experience || "Software Developer at XYZ Corp", 20, 170, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 180, 190, 180);
-
-    // Skills Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Skills:", 20, 190);
-    doc.setFontSize(12);
-    doc.text(skills || predefinedSkills, 20, 200, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 210, 190, 210);
-
-    // Awards Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Awards and Honors:", 20, 220);
-    doc.setFontSize(12);
-    doc.text(awards, 20, 230, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 240, 190, 240);
-
-    // Languages Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Languages:", 20, 250);
-    doc.setFontSize(12);
-    doc.text(languages || "English, Spanish", 20, 260, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 270, 190, 270);
-
-    // Volunteer Experience Section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Volunteer Experience:", 20, 280);
-    doc.setFontSize(12);
-    doc.text(volunteerExperience || "Volunteer Developer at Local NGO", 20, 290, { maxWidth: 180 });
-
-    // Divider line
-    doc.line(20, 300, 190, 300);
-
-    // Generate base64 PDF data
-    const pdfBase64 = doc.output('base64');
-    const pdfDataUri = `data:application/pdf;base64,${pdfBase64}`;
-
     try {
+      // Generate the PDF using jsPDF
+      const doc = new jsPDF();
+
+      // Add the profile picture if it exists
+      if (photo) {
+        doc.addImage(photo, "JPEG", 150, 15, 50, 50); // Image position and size
+      }
+
+      // Title and Header Section
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Resume", 70, 20); // Add title
+
+      // Personal Information Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Name: ", 20, 60);
+      doc.setFontSize(12);
+      doc.text(name, 40, 60);
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Email: ", 20, 70);
+      doc.setFontSize(12);
+      doc.text(email, 40, 70);
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Phone: ", 20, 80);
+      doc.setFontSize(12);
+      doc.text(phone, 40, 80);
+
+      // Divider line
+      doc.setLineWidth(0.5);
+      doc.line(20, 85, 190, 85);
+
+      // Summary Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Summary:", 20, 100);
+      doc.setFontSize(12);
+      doc.text(summary, 20, 110, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 120, 190, 120);
+
+      // Education Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Education:", 20, 130);
+      doc.setFontSize(12);
+      doc.text(education || "Bachelor's in Computer Science", 20, 140, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 150, 190, 150);
+
+      // Work Experience Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Work Experience:", 20, 160);
+      doc.setFontSize(12);
+      doc.text(experience || "Software Developer at XYZ Corp", 20, 170, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 180, 190, 180);
+
+      // Skills Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Skills:", 20, 190);
+      doc.setFontSize(12);
+      doc.text(skills || predefinedSkills, 20, 200, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 210, 190, 210);
+
+      // Awards Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Awards and Honors:", 20, 220);
+      doc.setFontSize(12);
+      doc.text(awards, 20, 230, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 240, 190, 240);
+
+      // Languages Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Languages:", 20, 250);
+      doc.setFontSize(12);
+      doc.text(languages || "English, Spanish", 20, 260, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 270, 190, 270);
+
+      // Volunteer Experience Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Volunteer Experience:", 20, 280);
+      doc.setFontSize(12);
+      doc.text(volunteerExperience || "Volunteer Developer at Local NGO", 20, 290, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 300, 190, 300);
+
+      // Convert the PDF to a base64 string
+      const pdfBase64 = doc.output('datauristring');
+
       const token = localStorage.getItem("token");
       const response = await fetch(`${config.apiUrl}/resume`, {
         method: isEditing ? "PUT" : "POST",
@@ -205,24 +205,24 @@ const ResumePage = () => {
           languages,
           volunteerExperience,
           photo,
-          pdfData: pdfDataUri // Store with proper data URI format
+          pdfData: pdfBase64 // Save the PDF as a base64 data URI
         })
       });
 
-      if (response.ok) {
-        setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
-        // Save local copy
-        doc.save(`${name}_resume.pdf`);
-        setTimeout(() => {
-          navigate("/profile");
-          setMessage("");
-        }, 3000);
-      } else {
-        throw new Error('Failed to save resume');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save resume');
       }
+
+      setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
+      doc.save(`${name}_resume.pdf`);
+      
+      setTimeout(() => {
+        navigate("/profile");
+      }, 2000);
     } catch (error) {
-      console.error("Error saving resume:", error);
-      setMessage("Failed to save resume");
+      console.error("Resume save error:", error);
+      setMessage(`Failed to ${isEditing ? 'update' : 'create'} resume: ${error.message}`);
     }
   };
 

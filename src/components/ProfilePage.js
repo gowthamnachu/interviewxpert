@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { config } from '../config';
 import "./ProfilePage.css";
-import { FaUser, FaEnvelope, FaCalendar, FaFileAlt, FaCertificate, FaTrash } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaCalendar, FaCertificate, FaTrash, FaDownload, FaEdit } from "react-icons/fa";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -101,11 +101,26 @@ const ProfilePage = () => {
   };
 
   const handleDownloadResume = () => {
-    if (resume?.pdfData) {
-      const link = document.createElement('a');
-      link.href = resume.pdfData;
-      link.download = `${resume.name || 'resume'}.pdf`;
-      link.click();
+    try {
+      if (resume?.pdfData) {
+        // Ensure pdfData is properly formatted as a base64 data URI
+        const pdfData = resume.pdfData.startsWith('data:application/pdf;base64,')
+          ? resume.pdfData
+          : `data:application/pdf;base64,${resume.pdfData}`;
+
+        // Create a temporary link element to trigger the download
+        const link = document.createElement('a');
+        link.href = pdfData;
+        link.download = `${resume.name || 'resume'}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        setError('PDF data not found in resume');
+      }
+    } catch (error) {
+      console.error('Resume download error:', error);
+      setError('Failed to download resume');
     }
   };
 
@@ -134,7 +149,20 @@ const ProfilePage = () => {
   };
 
   const handleEditResume = () => {
-    navigate('/build-resume', { state: { isEditing: true, resumeData: resume } });
+    try {
+      if (!resume) {
+        throw new Error('No resume data available');
+      }
+      navigate('/build-resume', { 
+        state: { 
+          isEditing: true, 
+          resumeData: resume
+        } 
+      });
+    } catch (error) {
+      console.error('Resume edit error:', error);
+      setError('Failed to edit resume');
+    }
   };
 
   const handleDeleteCertificate = async (certId) => {
@@ -198,6 +226,33 @@ const ProfilePage = () => {
         ))
       ) : (
         <p>No certificates found</p>
+      )}
+    </div>
+  );
+
+  const renderResumeSection = () => (
+    <div className="profile-section resume-section">
+      <h3>My Resume</h3>
+      {error && <div className="error-message">{error}</div>}
+      {loading ? (
+        <div className="loading-spinner">Loading resume...</div>
+      ) : resume ? (
+        <div className="resume-actions">
+          <button className="action-btn download" onClick={handleDownloadResume}>
+            <FaDownload /> Download Resume
+          </button>
+          <button className="action-btn edit" onClick={handleEditResume}>
+            <FaEdit /> Edit Resume
+          </button>
+          <button className="action-btn delete" onClick={handleDeleteResume}>
+            <FaTrash /> Delete Resume
+          </button>
+        </div>
+      ) : (
+        <div className="no-resume">
+          <p>No resume found</p>
+          <button onClick={() => navigate('/build-resume')}>Create Resume</button>
+        </div>
       )}
     </div>
   );
@@ -268,43 +323,7 @@ const ProfilePage = () => {
               </div>
             )}
 
-            {activeTab === 'resume' && (
-              <div className="profile-section resume-section">
-                <h3>Resume Management</h3>
-                {resume ? (
-                  <>
-                    <div className="resume-preview">
-                      <div className="resume-header">
-                        <FaFileAlt className="resume-icon" />
-                        <div className="resume-info">
-                          <h4>Your Resume</h4>
-                          <p>Last updated: {new Date(resume.updatedAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="resume-actions">
-                        <button className="profile-button primary-button" onClick={handleEditResume}>
-                          Edit Resume
-                        </button>
-                        <button className="profile-button primary-button" onClick={handleDownloadResume}>
-                          Download Resume
-                        </button>
-                        <button className="profile-button danger-button" onClick={handleDeleteResume}>
-                          Delete Resume
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="no-resume">
-                    <FaFileAlt className="no-resume-icon" />
-                    <p>No resume found. Create your professional resume now!</p>
-                    <button className="profile-button primary-button" onClick={() => navigate("/build-resume")}>
-                      Create Resume
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            {activeTab === 'resume' && renderResumeSection()}
 
             {activeTab === 'certificates' && (
               <div className="profile-section">
