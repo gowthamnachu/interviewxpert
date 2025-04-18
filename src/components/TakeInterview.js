@@ -5,7 +5,6 @@ import "chart.js/auto"; // Required for Chart.js
 import "./TakeInterview.css"; // Import the CSS file
 import LoadingSpinner from "./LoadingSpinner";
 import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
-import apiService from '../utils/apiService';
 
 const TakeInterview = () => {
   const [selectedDomain, setSelectedDomain] = useState('');
@@ -129,31 +128,9 @@ const TakeInterview = () => {
     fetchQuestions(domain);
   };
 
-  const startInterview = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.startInterview(selectedDomain);
-      setQuestions(response.data);
+  const startInterview = () => {
+    if (selectedDomain) {
       setInterviewStarted(true);
-    } catch (error) {
-      console.error('Error starting interview:', error);
-      setError('Failed to start interview');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const response = await apiService.submitInterview({
-        domain: selectedDomain,
-        answers: userAnswers,
-        score,
-        confidenceLevel
-      });
-      // Handle response
-    } catch (error) {
-      console.error('Error submitting interview:', error);
     }
   };
 
