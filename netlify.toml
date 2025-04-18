@@ -1,11 +1,11 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
   publish = "build"
+  functions = "netlify/functions"
 
 [build.environment]
-  JWT_SECRET = "your-super-secret-jwt-key-2024"
   NODE_VERSION = "18"
+  JWT_SECRET = "your-secret-key"
 
 [functions]
   node_bundler = "esbuild"
@@ -15,6 +15,7 @@
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"

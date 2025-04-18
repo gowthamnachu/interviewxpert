@@ -30,9 +30,10 @@ const ProfilePage = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -58,9 +59,10 @@ const ProfilePage = () => {
   const fetchCertificates = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch('http://localhost:3001/api/certificates/user', {
+      const response = await fetch(`${config.apiUrl}/certificates/user`, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       const data = await response.json();

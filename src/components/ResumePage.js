@@ -47,7 +47,8 @@ const ResumePage = () => {
       const token = localStorage.getItem("token");
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       const data = await response.json();

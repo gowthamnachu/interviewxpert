@@ -27,6 +27,22 @@ const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Certificate = require('./models/Certificate');
 
+// Add auth middleware
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(401).json({ error: "Invalid token" });
+  }
+};
+
 // Routes
 app.get('/.netlify/functions/api/questions', async (req, res) => {
   try {
@@ -108,6 +124,32 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
       error: "Login failed",
       details: error.message 
     });
+  }
+});
+
+// Protected routes
+app.get('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ userId: req.user.userId });
+    res.json(resume || {});
+  } catch (error) {
+    console.error('Resume fetch error:', error);
+    res.status(500).json({ error: "Failed to fetch resume" });
+  }
+});
+
+app.post('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
+  try {
+    const resumeData = { ...req.body, userId: req.user.userId };
+    const resume = await Resume.findOneAndUpdate(
+      { userId: req.user.userId },
+      resumeData,
+      { new: true, upsert: true }
+    );
+    res.json(resume);
+  } catch (error) {
+    console.error('Resume save error:', error);
+    res.status(500).json({ error: "Failed to save resume" });
   }
 });
 
