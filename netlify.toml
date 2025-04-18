@@ -1,14 +1,14 @@
 [build]
   command = "npm run build"
-  publish = "build"
   functions = "netlify/functions"
+  publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
+  MONGO_URI = "mongodb+srv://2310080023:Gowtham%40545@interviewxpert.vg5e3.mongodb.net/interviewxpert?retryWrites=true&w=majority"
   JWT_SECRET = "your-secret-key"
 
 [functions]
-  node_bundler = "esbuild"
   external_node_modules = ["mongoose"]
 
 [[redirects]]

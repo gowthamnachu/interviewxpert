@@ -14,18 +14,45 @@ app.use(cors({
   credentials: true
 }));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('MongoDB Connected'))
-  .catch(err => console.error('MongoDB Connection Error:', err));
+// Ensure MongoDB connection
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb) {
+    console.log("Using cached MongoDB connection");
+    return cachedDb;
+  }
+
+  try {
+    console.log("Creating new MongoDB connection");
+    const connection = await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    cachedDb = connection;
+    console.log("MongoDB Connected Successfully");
+    return cachedDb;
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    throw error;
+  }
+}
 
 // Import models
 const Question = require('./models/Question');
 const User = require('./models/User');
 const Resume = require('./models/Resume');
-const Certificate = require('./models/Certificate');
+
+// Certificate Schema
+const certificateSchema = new mongoose.Schema({
+  certificateId: String,
+  userId: String,
+  domain: String,
+  score: Number,
+  date: { type: Date, default: Date.now },
+});
+
+const Certificate = mongoose.models.Certificate || mongoose.model('Certificate', certificateSchema);
 
 // Add auth middleware
 const authMiddleware = async (req, res, next) => {
@@ -154,15 +181,28 @@ app.post('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
 });
 
 // Get user certificates
-app.get('/.netlify/functions/api/certificates/user', authMiddleware, async (req, res) => {
+app.get('/.netlify/functions/api/certificates/user', async (req, res) => {
   try {
-    console.log('Fetching certificates for user:', req.user.userId);
-    const certificates = await Certificate.find({ userId: req.user.userId });
-    console.log(`Found ${certificates.length} certificates for user`);
+    await connectToDatabase();
+    
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    console.log("Fetching certificates for user:", decoded.userId);
+
+    const certificates = await Certificate.find({ userId: decoded.userId });
+    console.log(`Found ${certificates.length} certificates`);
+
     res.json(certificates);
   } catch (error) {
-    console.error('Certificate fetch error:', error);
-    res.status(500).json({ error: "Failed to fetch certificates" });
+    console.error("Certificate fetch error:", error);
+    res.status(500).json({
+      error: "Failed to fetch certificates",
+      details: error.message,
+    });
   }
 });
 
