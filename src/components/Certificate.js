@@ -11,6 +11,7 @@ const Certificate = ({ userName, domain, score, date }) => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savingError, setSavingError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const downloadSteps = [
     { id: 1, text: 'Generating Certificate...', icon: <FaSpinner className="spin" /> },
     { id: 2, text: 'Saving to Server...', icon: <FaSave /> },
@@ -33,6 +34,8 @@ const Certificate = ({ userName, domain, score, date }) => {
     setCurrentStep(1);
     
     try {
+      await saveCertificate(); // Add this call to save the certificate
+
       // Step 1: Generate Certificate
       setCurrentStep(1);
       const token = localStorage.getItem('token');
@@ -210,10 +213,61 @@ const Certificate = ({ userName, domain, score, date }) => {
     }
   };
 
+  const saveCertificate = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Step 2: Save to Server
+      setCurrentStep(2);
+      const response = await axios.post(
+        `${config.apiUrl}/certificates`, 
+        {
+          certificateId,
+          userName,
+          fullName: userName,
+          domain,
+          score,
+          badgeLevel: calculateBadgeLevel(score),
+          issueDate: new Date(),
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+        }, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data) {
+        console.log('Certificate saved successfully:', response.data);
+        setCurrentStep(3);
+      } else {
+        throw new Error('No data received from server');
+      }
+    } catch (error) {
+      console.error('Error saving certificate:', error);
+      setError(error.response?.data?.error || error.message || 'Failed to save certificate');
+      setCurrentStep(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="certificate-container">
       {error && <div className="error-message">{error}</div>}
       {savingError && <div className="error-message">Server Error: {savingError}</div>}
+      {isLoading && <div className="loading">Saving certificate...</div>}
       
       <button 
         className="download-certificate-btn" 
