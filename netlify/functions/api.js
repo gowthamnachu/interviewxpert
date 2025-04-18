@@ -3,7 +3,7 @@ const serverless = require('serverless-http');
 const mongoose = require('mongoose');
 const app = express();
 
-// Import your existing models and routes
+// Import models
 const Question = require('../../backend/models/Question');
 const User = require('../../backend/models/User');
 const Resume = require('../../backend/models/Resume');
@@ -19,7 +19,10 @@ mongoose.connect(process.env.MONGO_URI, {
   console.error("MongoDB Connection Error:", err);
 });
 
-// Your existing routes go here
+// Parse JSON bodies
+app.use(express.json());
+
+// Questions route
 app.get('/.netlify/functions/api/questions', async (req, res) => {
   try {
     const { domain } = req.query;
@@ -31,6 +34,10 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
   }
 });
 
-// Add all your other routes similarly
+// Add other routes similarly
+app.use('/.netlify/functions/api/*', (req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
 
-module.exports.handler = serverless(app);
+// Export handler
+exports.handler = serverless(app);
