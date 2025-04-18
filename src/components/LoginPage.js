@@ -13,8 +13,14 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
+    // Use direct URL in development, Netlify function URL in production
+    const loginUrl = config.isDevelopment 
+      ? 'http://localhost:3001/api/login'
+      : `${config.apiBaseUrl}/login`;
+
     try {
-      const response = await fetch(`${config.apiBaseUrl}/login`, {
+      console.log('Attempting login at:', loginUrl); // Debug log
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,8 +35,10 @@ const LoginPage = ({ setIsLoggedIn }) => {
 
       // Add response validation
       if (!response.ok) {
+        console.error('Response status:', response.status); // Debug log
+        console.error('Response status text:', response.statusText); // Debug log
         if (response.status === 404) {
-          throw new Error('API endpoint not found. Please check the server configuration.');
+          throw new Error(`API endpoint not found at ${loginUrl}`);
         }
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || `Login failed: ${response.statusText}`);
