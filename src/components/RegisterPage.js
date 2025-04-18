@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { config } from '../config';
 import "./Auth.css";
 
 const RegisterPage = () => {
@@ -51,7 +52,7 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/register', {
+      const response = await fetch(`${config.apiUrl}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

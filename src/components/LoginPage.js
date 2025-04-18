@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import { config } from '../config';
 import "./Auth.css";
 
 const LoginPage = ({ setIsLoggedIn }) => {
@@ -15,7 +16,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
 
     try {
       console.log('Attempting login with credentials:', { usernameOrEmail });
-      const apiUrl = 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/login';
+      const apiUrl = `${config.apiUrl}/login`;
 
       const response = await axios({
         method: 'post',
