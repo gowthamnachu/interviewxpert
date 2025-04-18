@@ -17,6 +17,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with URL:', `${config.apiUrl}/login`);
       const response = await axios({
         method: 'post',
         url: `${config.apiUrl}/login`,
@@ -44,10 +45,17 @@ const LoginPage = ({ setIsLoggedIn }) => {
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      console.error('Login error:', err);
-      const errorMessage = err.response?.data?.error || 
-                         'Unable to connect to server. Please try again.';
-      setError(errorMessage);
+      console.error('Login error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
+      if (!err.response) {
+        setError('Unable to connect to server. Please check your internet connection and try again.');
+      } else {
+        setError(err.response?.data?.error || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
