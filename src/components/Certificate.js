@@ -4,6 +4,7 @@ import axios from 'axios';
 import QRCode from 'qrcode';
 import './Certificate.css';
 import { FaDownload, FaSpinner, FaSave, FaCheck } from 'react-icons/fa';
+import { config } from '../config';
 
 const Certificate = ({ userName, domain, score, date }) => {
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ const Certificate = ({ userName, domain, score, date }) => {
       // Step 2: Save to Server
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
-      const response = await axios.post('http://localhost:3001/api/certificates', {
+      const response = await axios.post(`${config.apiUrl}/certificates`, {
         certificateId,
         userId: decoded.userId,
         userName,
@@ -175,7 +176,7 @@ const Certificate = ({ userName, domain, score, date }) => {
       doc.setTextColor(90, 90, 90);
       doc.text(`Valid Until: ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()}`, 40, 180);
       doc.text(`Certificate ID: ${certificateId}`, 40, 185);
-      doc.text(`Verify at: https://interviewxpert.netlify.app/verify-certificate/${certificateId}`, 40, 190);
+      doc.text(`Verify at: ${window.location.origin}/verify-certificate/${certificateId}`, 40, 190);
 
       // Step 4: Complete
       setCurrentStep(4);
