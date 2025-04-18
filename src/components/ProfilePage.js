@@ -12,6 +12,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [certificates, setCertificates] = useState([]);
+  const [loadingState, setLoadingState] = useState('');
 
   const username = localStorage.getItem("userUsername");
   const email = localStorage.getItem("userEmail");
@@ -29,6 +30,7 @@ const ProfilePage = () => {
   const fetchResume = async () => {
     try {
       setLoading(true);
+      setLoadingState('Fetching resume data...');
       setError(null);
       const token = localStorage.getItem("token");
       const response = await fetch(`${config.apiUrl}/resume`, {
@@ -43,9 +45,11 @@ const ProfilePage = () => {
       }
 
       const data = await response.json();
+      setLoadingState('Processing resume information...');
       console.log("Resume data received:", !!data.pdfData); // Debug log
       if (data && data.pdfData) {
         setResume(data);
+        setLoadingState('Resume loaded successfully!');
       } else {
         setError("No PDF data found in resume");
       }
@@ -53,24 +57,40 @@ const ProfilePage = () => {
       console.error("Error fetching resume:", error);
       setError(error.message);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+        setLoadingState('');
+      }, 500);
     }
   };
 
   const fetchCertificates = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const token = localStorage.getItem("token");
+      console.log('Fetching certificates...');
+      
       const response = await fetch(`${config.apiUrl}/certificates/user`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('Certificates received:', data);
       setCertificates(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching certificates:', error);
+      console.error('Certificate fetch error:', error);
+      setError(`Failed to load certificates: ${error.message}`);
       setCertificates([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,26 +139,68 @@ const ProfilePage = () => {
 
   const handleDeleteCertificate = async (certId) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/certificates/${certId}`, {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${config.apiUrl}/certificates/${certId}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
-        setCertificates(certificates.filter(cert => cert._id !== certId));
-        setMessage('Certificate deleted successfully');
-        setTimeout(() => setMessage(''), 3000);
-      } else {
+      if (!response.ok) {
         throw new Error('Failed to delete certificate');
       }
+
+      setCertificates(certificates.filter(cert => cert._id !== certId));
+      setMessage('Certificate deleted successfully');
+      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error deleting certificate:', error);
-      setMessage('Error deleting certificate');
-      setTimeout(() => setMessage(''), 3000);
+      setError('Failed to delete certificate');
+      setTimeout(() => setError(''), 3000);
     }
   };
+
+  const renderLoading = () => (
+    <div className="loading-container">
+      <div className="loading-spinner"></div>
+      <div className="loading-text">{loadingState}</div>
+      <div className="loading-progress">
+        <div className="loading-progress-bar"></div>
+      </div>
+    </div>
+  );
+
+  const renderCertificates = () => (
+    <div className="certificates-grid">
+      {error ? (
+        <div className="error-message">{error}</div>
+      ) : loading ? (
+        <div className="loading-spinner">Loading certificates...</div>
+      ) : certificates.length > 0 ? (
+        certificates.map((cert) => (
+          <div key={cert._id || cert.certificateId} className="certificate-card">
+            <FaCertificate className="certificate-icon" />
+            <div className="certificate-info">
+              <h4>{cert.domain}</h4>
+              <p>Score: {cert.score}%</p>
+              <p>Date: {new Date(cert.date).toLocaleDateString()}</p>
+              <p className="certificate-id">ID: {cert.certificateId}</p>
+              <button 
+                className="delete-btn"
+                onClick={() => handleDeleteCertificate(cert._id)}
+              >
+                <FaTrash /> Delete
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p>No certificates found</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="profile-page">
@@ -175,9 +237,7 @@ const ProfilePage = () => {
         {message && <div className="message">{message}</div>}
         {error && <div className="error-message">{error}</div>}
 
-        {loading ? (
-          <div className="loading-spinner">Loading...</div>
-        ) : (
+        {loading ? renderLoading() : (
           <>
             {activeTab === 'profile' && (
               <div className="profile-section profile-info">
@@ -249,29 +309,7 @@ const ProfilePage = () => {
             {activeTab === 'certificates' && (
               <div className="profile-section">
                 <h3>My Certificates</h3>
-                <div className="certificates-grid">
-                  {Array.isArray(certificates) && certificates.length > 0 ? (
-                    certificates.map((cert) => (
-                      <div key={cert.certificateId} className="certificate-card">
-                        <FaCertificate className="certificate-icon" />
-                        <div className="certificate-info">
-                          <h4>{cert.domain}</h4>
-                          <p>Score: {cert.score}%</p>
-                          <p>Date: {new Date(cert.date).toLocaleDateString()}</p>
-                          <p className="certificate-id">ID: {cert.certificateId}</p>
-                          <button 
-                            className="delete-btn"
-                            onClick={() => handleDeleteCertificate(cert._id)}
-                          >
-                            <FaTrash /> Delete
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p>No certificates found</p>
-                  )}
-                </div>
+                {renderCertificates()}
               </div>
             )}
           </>

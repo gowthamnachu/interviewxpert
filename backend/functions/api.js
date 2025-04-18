@@ -153,6 +153,60 @@ app.post('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
   }
 });
 
+// Get user certificates
+app.get('/.netlify/functions/api/certificates/user', authMiddleware, async (req, res) => {
+  try {
+    console.log('Fetching certificates for user:', req.user.userId);
+    const certificates = await Certificate.find({ userId: req.user.userId });
+    console.log(`Found ${certificates.length} certificates for user`);
+    res.json(certificates);
+  } catch (error) {
+    console.error('Certificate fetch error:', error);
+    res.status(500).json({ error: "Failed to fetch certificates" });
+  }
+});
+
+// Verify certificate
+app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
+  try {
+    console.log('Verifying certificate:', req.params.id);
+    
+    const certificate = await Certificate.findOne({ 
+      certificateId: req.params.id 
+    });
+    
+    if (!certificate) {
+      console.log('Certificate not found:', req.params.id);
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    res.json(certificate);
+  } catch (error) {
+    console.error('Certificate verification error:', error);
+    res.status(500).json({ 
+      error: "Failed to verify certificate",
+      details: error.message 
+    });
+  }
+});
+
+// Delete certificate
+app.delete('/.netlify/functions/api/certificates/:id', authMiddleware, async (req, res) => {
+  try {
+    const result = await Certificate.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+    if (!result) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    res.json({ message: "Certificate deleted successfully" });
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(500).json({ error: "Failed to delete certificate" });
+  }
+});
+
 // Not found handler
 app.use('/.netlify/functions/api/*', (req, res) => {
   res.status(404).json({ error: `Cannot ${req.method} ${req.url}` });
