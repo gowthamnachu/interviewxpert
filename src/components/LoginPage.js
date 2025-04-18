@@ -12,46 +12,35 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
-    const loginUrl = process.env.NODE_ENV === 'development' 
-      ? 'http://localhost:3001/api/login'
-      : '/.netlify/functions/api/login';
-
     try {
-      console.log('Attempting login at:', loginUrl);
-      const response = await fetch(loginUrl, {
+      const response = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           usernameOrEmail,
-          password,
+          password
         }),
       });
 
       const data = await response.json();
-      console.log('Login response:', data); // Debug log
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed. Please try again.');
-      }
-
-      if (!data.token) {
-        throw new Error('Invalid server response - no token received');
+        throw new Error(data.error || 'Login failed');
       }
 
       // Store token and user data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('userUsername', data.username);
-      localStorage.setItem('userEmail', data.email || usernameOrEmail);
-      localStorage.setItem('registrationDate', new Date().toISOString());
+      localStorage.setItem('userUsername', data.user.username);
+      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('registrationDate', data.user.registrationDate);
       localStorage.setItem('isLoggedIn', 'true');
 
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message || 'Connection failed. Please try again.');
+      setError(err.message);
     }
   };
 

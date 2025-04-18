@@ -8,68 +8,26 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors());
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('Not allowed by CORS'));
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
+  .then(() => {
+    console.log("✅ MongoDB Connected");
+  })
+  .catch(err => {
+    console.error("❌ MongoDB Connection Error:", err);
+    if (!process.env.MONGO_URI) {
+      console.error("MONGO_URI environment variable is not set!");
+      console.log("Please check that:");
+      console.log("1. You have created a .env file in the project root");
+      console.log("2. The .env file contains MONGO_URI=your_mongodb_connection_string");
     }
-    return callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Update MongoDB connection with retry logic
-const connectWithRetry = async () => {
-  const maxRetries = 5;
-  const retryDelay = 5000; // 5 seconds
-  let currentTry = 1;
-
-  while (currentTry <= maxRetries) {
-    try {
-      await mongoose.connect(process.env.MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 10000,
-        socketTimeoutMS: 45000,
-        connectTimeoutMS: 10000,
-      });
-      console.log("✅ MongoDB Connected Successfully");
-      break;
-    } catch (err) {
-      console.error(`❌ MongoDB Connection Attempt ${currentTry} Failed:`, err.message);
-      if (currentTry === maxRetries) {
-        console.error("❌ Failed to connect to MongoDB after maximum retries");
-        process.exit(1);
-      }
-      console.log(`Retrying in ${retryDelay/1000} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
-      currentTry++;
-    }
-  }
-};
-
-// Initialize MongoDB connection
-connectWithRetry();
-
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-  setTimeout(connectWithRetry, 5000);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected. Attempting to reconnect...');
-  connectWithRetry();
-});
+    console.log("\nIf using MongoDB Atlas, ensure your IP address is whitelisted:");
+    console.log("1. Go to MongoDB Atlas dashboard");
+    console.log("2. Click Network Access under Security");
+    console.log("3. Click '+ ADD IP ADDRESS' and add your current IP");
+    process.exit(1);
+  });
 
 const Question = require("./models/Question");
 const User = require("./models/User");
@@ -383,15 +341,6 @@ app.delete('/api/certificates/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error deleting certificate' });
   }
-});
-
-// Add error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error', 
-    message: err.message 
-  });
 });
 
 const PORT = process.env.PORT || 3001;
