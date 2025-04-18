@@ -4,11 +4,19 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const compression = require('compression');
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
+app.use(compression()); // Add compression
+
+// Add global timeout middleware
+app.use((req, res, next) => {
+  req.setTimeout(30000); // 30 second timeout
+  next();
+});
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
   .then(() => {
@@ -66,15 +74,35 @@ const certificateSchema = new mongoose.Schema({
 
 const CertificateModel = mongoose.model('Certificate', certificateSchema);
 
+// Add health check endpoint
+app.get('/api/health', (req, res) => {
+  res.set({
+    'Cache-Control': 'no-store',
+    'Connection': 'keep-alive'
+  }).json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // API to Fetch Questions
 app.get("/api/questions", async (req, res) => {
   try {
     const { domain } = req.query;
     const query = domain ? { domain } : {};
-    const questions = await Question.find(query);
+    
+    // Add caching headers
+    res.set({
+      'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+      'ETag': Math.random().toString(36), // Add ETag for caching
+    });
+    
+    const questions = await Question.find(query).lean(); // Use lean() for better performance
     res.json(questions);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch questions" });
+    console.error('Questions fetch error:', error);
+    res.status(500).json({ 
+      error: "Failed to fetch questions",
+      message: error.message,
+      time: new Date().toISOString()
+    });
   }
 });
 
@@ -341,6 +369,17 @@ app.delete('/api/certificates/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error deleting certificate' });
   }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: err.message,
+    path: req.path,
+    time: new Date().toISOString()
+  });
 });
 
 const PORT = process.env.PORT || 3001;
