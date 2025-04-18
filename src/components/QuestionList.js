@@ -1,35 +1,79 @@
-import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { config } from '../config';
 import { FaSearch, FaCheckCircle } from "react-icons/fa";
-import "./QuestionList.css";
+import './QuestionList.css';
 
 const QuestionList = () => {
   const location = useLocation();
-  const selectedDomain = location.state?.domain || "Software Engineering";
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const selectedDomain = location.state?.domain || "Software Engineering";
 
   useEffect(() => {
     const fetchQuestions = async () => {
+      if (!selectedDomain) {
+        navigate('/select-domain');
+        return;
+      }
+
       try {
-        const response = await axios.get(`http://localhost:3001/api/questions?domain=${encodeURIComponent(selectedDomain)}`);
-        if (response.data.length === 0) {
-          setError(`No questions available for ${selectedDomain}`);
+        setLoading(true);
+        setError(null);
+        console.log('Fetching questions for domain:', selectedDomain);
+        console.log('API URL:', `${config.apiUrl}/questions?domain=${encodeURIComponent(selectedDomain)}`);
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await axios({
+          method: 'get',
+          url: `${config.apiUrl}/questions?domain=${encodeURIComponent(selectedDomain)}`,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        });
+
+        console.log('Questions API response:', response.data);
+        
+        if (!response.data || response.data.length === 0) {
+          setError(`No questions found for ${selectedDomain}`);
+          setQuestions([]);
         } else {
           setQuestions(response.data);
         }
-        setLoading(false);
       } catch (err) {
-        setError("Failed to fetch questions. Please try again later.");
+        console.error('Error fetching questions:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          config: err.config
+        });
+        
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          navigate('/login');
+          return;
+        }
+
+        setError(err.response?.data?.error || 
+                'Failed to load questions. Please try again later.');
+        setQuestions([]);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchQuestions();
-  }, [selectedDomain]);
+  }, [selectedDomain, navigate]);
 
   const highlightSearchText = (text, searchTerm) => {
     if (!searchTerm) return text;
@@ -50,18 +94,8 @@ const QuestionList = () => {
     );
   });
 
-  if (loading) {
-    return <div className="question-list-loader">
-      <div className="loader-spinner"></div>
-      <p>Loading questions...</p>
-    </div>;
-  }
-
-  if (error) {
-    return <div className="question-list-error">
-      <div className="error-icon">⚠️</div>
-      <p>{error}</p>
-    </div>;
+  if (!selectedDomain) {
+    return null;
   }
 
   return (
@@ -97,7 +131,17 @@ const QuestionList = () => {
       </div>
 
       <div className="questions-grid">
-        {filteredQuestions.length > 0 ? (
+        {loading ? (
+          <div className="question-list-loader">
+            <div className="loader-spinner"></div>
+            <p>Loading questions...</p>
+          </div>
+        ) : error ? (
+          <div className="question-list-error">
+            <div className="error-icon">⚠️</div>
+            <p>{error}</p>
+          </div>
+        ) : filteredQuestions.length > 0 ? (
           filteredQuestions.map((item, index) => (
             <div key={index} className="question-card" data-aos="fade-up">
               <div className="question-card-header">
@@ -156,6 +200,12 @@ const QuestionList = () => {
           </div>
         )}
       </div>
+      <button 
+        className="back-button"
+        onClick={() => navigate('/select-domain')}
+      >
+        Back to Domain Selection
+      </button>
     </div>
   );
 };

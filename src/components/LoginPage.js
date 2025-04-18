@@ -9,30 +9,26 @@ const LoginPage = ({ setIsLoggedIn }) => {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     try {
-      console.log('Attempting login with credentials:', { usernameOrEmail });
-      const apiUrl = `${config.apiUrl}/login`;
-
       const response = await axios({
         method: 'post',
-        url: apiUrl,
+        url: `${config.apiUrl}/login`,
         data: {
           usernameOrEmail,
-          password,
-          loginMethod: 'password'
+          password
         },
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true
       });
-
-      console.log('Server response:', response.data);
 
       const { token, user } = response.data;
       
@@ -48,13 +44,12 @@ const LoginPage = ({ setIsLoggedIn }) => {
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      console.error('Login error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
-      });
-      
-      setError(err.response?.data?.error || 'Unable to connect to server. Please try again.');
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.error || 
+                         'Unable to connect to server. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,6 +65,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
             onChange={(e) => setUsernameOrEmail(e.target.value)}
             placeholder=" "
             required
+            disabled={isLoading}
           />
           <label htmlFor="usernameOrEmail">Username or Email</label>
         </div>
@@ -81,10 +77,13 @@ const LoginPage = ({ setIsLoggedIn }) => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder=" "
             required
+            disabled={isLoading}
           />
           <label htmlFor="password">Password</label>
         </div>
-        <button type="submit">Sign In</button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? "Signing in..." : "Sign In"}
+        </button>
         {error && <div className="error">{error}</div>}
       </form>
       <p>Don't have an account? <span onClick={() => navigate("/register")}>Create Account</span></p>

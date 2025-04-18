@@ -1,19 +1,39 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
-// Create directories if they don't exist
-const dirs = ['functions', 'public'];
-dirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// Ensure environment variables are set
+const requiredEnvVars = [
+  'MONGO_URI',
+  'JWT_SECRET',
+  'NODE_ENV'
+];
+
+const missingEnvVars = requiredEnvVars.filter(env => !process.env[env]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
+// Create functions directory if it doesn't exist
+const functionsDir = path.join(__dirname, '..', 'netlify', 'functions');
+if (!fs.existsSync(functionsDir)) {
+  fs.mkdirSync(functionsDir, { recursive: true });
+}
+
+// Copy necessary files to functions directory
+const filesToCopy = [
+  { src: './models', dest: path.join(functionsDir, 'models') },
+  { src: './routes', dest: path.join(functionsDir, 'routes') },
+  { src: './middleware', dest: path.join(functionsDir, 'middleware') }
+];
+
+filesToCopy.forEach(({ src, dest }) => {
+  if (fs.existsSync(src)) {
+    fs.cpSync(src, dest, { recursive: true });
+    console.log(`Copied ${src} to ${dest}`);
   }
 });
 
-// Copy models and routes to functions directory
-['models', 'routes'].forEach(dir => {
-  if (fs.existsSync(dir)) {
-    fs.cpSync(dir, path.join('functions', dir), { recursive: true });
-  }
-});
-
-console.log('Build completed successfully!');
+console.log('Build process completed successfully');

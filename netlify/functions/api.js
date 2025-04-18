@@ -1,24 +1,62 @@
 const express = require('express');
 const serverless = require('serverless-http');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const app = express();
 
-// Import your existing models and routes
+// Middleware
+app.use(express.json());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
+// Database connection with connection pooling
+let cachedDb = null;
+
+const connectToDatabase = async () => {
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    console.log('Using cached database connection');
+    return;
+  }
+
+  try {
+    console.log('Creating new database connection');
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10
+    });
+
+    cachedDb = mongoose.connection;
+    console.log('MongoDB Connected Successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
+
+// Ensure database connection before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection middleware error:', error);
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
+
+// Import models
 const Question = require('../../backend/models/Question');
 const User = require('../../backend/models/User');
 const Resume = require('../../backend/models/Resume');
 const Certificate = require('../../backend/models/Certificate');
-
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log("MongoDB Connected via Netlify Function");
-}).catch(err => {
-  console.error("MongoDB Connection Error:", err);
-});
 
 // Add JWT verification middleware
 const verifyToken = (req, res, next) => {
@@ -47,6 +85,51 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
     res.json(questions);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch questions" });
+  }
+});
+
+// Login route
+app.post('/.netlify/functions/api/login', async (req, res) => {
+  try {
+    const { usernameOrEmail, password } = req.body;
+
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }]
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { 
+        userId: user._id, 
+        username: user.username, 
+        email: user.email 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.json({
+      token,
+      user: {
+        username: user.username,
+        email: user.email,
+        registrationDate: user.registrationDate
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: "Login failed" });
   }
 });
 

@@ -105,19 +105,31 @@ const TakeInterview = () => {
 
   const fetchQuestions = async (domain) => {
     try {
-      setError(""); // Clear any previous errors
-      const response = await axios.get(`${config.apiUrl}/questions?domain=${domain}`);
+      setError("");
+      const token = localStorage.getItem('token');
+      
+      const response = await axios({
+        method: 'get',
+        url: `${config.apiUrl}/questions?domain=${encodeURIComponent(domain)}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       if (!response.data || response.data.length === 0) {
         setError(`No questions found for ${domain}. Please try another domain.`);
         setLoading(false);
         return;
       }
+
       const shuffled = response.data.sort(() => 0.5 - Math.random());
       setQuestions(shuffled.slice(0, 5)); // Limit to 5 questions
       setLoading(false);
     } catch (error) {
-      console.error("❌ Error fetching questions:", error);
-      setError("Failed to load questions. Please check your connection and try again.");
+      console.error("Error fetching questions:", error);
+      setError(error.response?.data?.error || 
+              "Failed to load questions. Please check your connection and try again.");
       setLoading(false);
     }
   };

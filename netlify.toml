@@ -1,15 +1,16 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
   publish = "build"
-
-[build.environment]
-  NODE_VERSION = "18"
-  MONGO_URI = "mongodb+srv://2310080023:Gowtham%40545@interviewxpert.vg5e3.mongodb.net/interviewxpert?retryWrites=true&w=majority"
-  JWT_SECRET = "your-super-secret-jwt-key-2024"
+  functions = "netlify/functions"
 
 [functions]
-  external_node_modules = ["mongoose"]
+  external_node_modules = ["express", "mongoose", "bcryptjs", "jsonwebtoken"]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 [[redirects]]
   from = "/api/*"
@@ -17,7 +18,14 @@
   status = 200
   force = true
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[build.environment]
+  NODE_VERSION = "18.x"
+  MONGO_URI = "mongodb+srv://2310080023:Gowtham%40545@interviewxpert.vg5e3.mongodb.net/interviewxpert?retryWrites=true&w=majority"
+  JWT_SECRET = "your-super-secret-jwt-key-2024"
+
+[dev]
+  framework = "#custom"
+  command = "npm start"
+  targetPort = 3000
+  port = 8888
+  publish = "build"
