@@ -8,33 +8,49 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors());
 
-// Update CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// Update MongoDB connection with retry logic
+const connectWithRetry = async () => {
+  const maxRetries = 5;
+  const retryDelay = 5000; // 5 seconds
+  let currentTry = 1;
 
-// Update MongoDB connection with better error handling
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000
-})
-.then(() => {
-  console.log("✅ MongoDB Connected");
-})
-.catch(err => {
-  console.error("❌ MongoDB Connection Error:", err);
-  console.log("\nTroubleshooting steps:");
-  console.log("1. Check if MongoDB is running");
-  console.log("2. Verify MONGO_URI in .env file");
-  console.log("3. Check network connectivity");
-  console.log("4. Verify IP whitelist in MongoDB Atlas");
+  while (currentTry <= maxRetries) {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 10000,
+      });
+      console.log("✅ MongoDB Connected Successfully");
+      break;
+    } catch (err) {
+      console.error(`❌ MongoDB Connection Attempt ${currentTry} Failed:`, err.message);
+      if (currentTry === maxRetries) {
+        console.error("❌ Failed to connect to MongoDB after maximum retries");
+        process.exit(1);
+      }
+      console.log(`Retrying in ${retryDelay/1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      currentTry++;
+    }
+  }
+};
+
+// Initialize MongoDB connection
+connectWithRetry();
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+  setTimeout(connectWithRetry, 5000);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected. Attempting to reconnect...');
+  connectWithRetry();
 });
 
 const Question = require("./models/Question");
@@ -127,13 +143,10 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Update JWT authentication to use environment variable
-    const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
     // Create JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
-      JWT_SECRET,
+      "your-secret-key", // Replace with actual secret from env
       { expiresIn: "24h" }
     );
 
@@ -158,7 +171,7 @@ app.post("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const userId = decoded.userId;
 
     const resumeData = { ...req.body, userId };
@@ -189,7 +202,7 @@ app.get("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const resume = await Resume.findOne({ userId: decoded.userId });
     
     if (!resume) {
@@ -211,7 +224,7 @@ app.put("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const userId = decoded.userId;
 
     const updatedResume = await Resume.findOneAndUpdate(
@@ -237,7 +250,7 @@ app.delete("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const result = await Resume.findOneAndDelete({ userId: decoded.userId });
     
     if (!result) {
@@ -258,7 +271,7 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const { certificateId, domain, score, userName, fullName } = req.body;
 
     // Validate required fields
@@ -335,7 +348,7 @@ app.get("/api/certificates/user", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, "your-secret-key");
     const certificates = await CertificateModel.find({ userId: decoded.userId });
     res.json(certificates);
   } catch (error) {
@@ -355,10 +368,9 @@ app.delete('/api/certificates/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log('====================================');
   console.log(`🚀 Backend server running on port ${PORT}`);
   console.log(`📑 API endpoints available at http://localhost:${PORT}/api`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
   console.log('====================================');
 });
