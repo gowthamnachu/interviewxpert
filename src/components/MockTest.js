@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaClock, FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
 import Certificate from "./Certificate";
+import apiService from '../utils/apiService';
 import "./MockTest.css";
 
 const MockTest = () => {
@@ -46,6 +47,7 @@ const MockTest = () => {
   });
   const [userName, setUserName] = useState("");
   const [showNameInput, setShowNameInput] = useState(false);
+  const [error, setError] = useState(null);
 
   const calculateAnalytics = useCallback(() => {
     const correct = Object.entries(selectedAnswers).filter(
@@ -88,30 +90,32 @@ const MockTest = () => {
     }
   }, [currentQuestionIndex, questions.length, timeLeft, calculateAnalytics]);
 
-  const fetchQuestions = useCallback(async () => {
+  const fetchMockQuestions = async () => {
     try {
-      setLoading(true);
-      const response = await axios.get(`http://localhost:3001/api/questions?domain=${selectedDomain}`);
-      const mockQuestions = response.data.filter(q => q.isMockQuestion);
-      setQuestions(mockQuestions);
-      setAnalytics(prev => ({...prev, timePerQuestion: new Array(mockQuestions.length).fill(0)}));
-      setLoading(false);
-      // Reset test state when domain changes
-      setCurrentQuestionIndex(0);
-      setSelectedAnswers({});
-      setShowResults(false);
-      setTestStarted(false);
-      setTimeLeft(60);
+      const response = await apiService.getMockQuestions(selectedDomain);
+      setQuestions(response.data);
     } catch (error) {
-      console.error("Error fetching questions:", error);
-      setLoading(false);
-      setQuestions([]);
+      console.error('Error fetching mock questions:', error);
+      setError('Failed to fetch questions');
     }
-  }, [selectedDomain]);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const response = await apiService.submitMockTest({
+        domain: selectedDomain,
+        answers: selectedAnswers,
+        score: analytics.correct
+      });
+      // Handle certificate generation
+    } catch (error) {
+      console.error('Error submitting test:', error);
+    }
+  };
 
   useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
+    fetchMockQuestions();
+  }, [selectedDomain]);
 
   useEffect(() => {
     if (testStarted && !showResults && questions.length > 0) {

@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaSearch, FaCheckCircle } from "react-icons/fa";
 import "./QuestionList.css";
+import apiService from '../utils/apiService';
 
 const QuestionList = () => {
   const location = useLocation();
@@ -15,15 +16,13 @@ const QuestionList = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/api/questions?domain=${encodeURIComponent(selectedDomain)}`);
-        if (response.data.length === 0) {
-          setError(`No questions available for ${selectedDomain}`);
-        } else {
-          setQuestions(response.data);
-        }
-        setLoading(false);
-      } catch (err) {
-        setError("Failed to fetch questions. Please try again later.");
+        setLoading(true);
+        const response = await apiService.getQuestions(selectedDomain);
+        setQuestions(response.data);
+      } catch (error) {
+        console.error('Error fetching questions:', error);
+        setError('Failed to fetch questions');
+      } finally {
         setLoading(false);
       }
     };

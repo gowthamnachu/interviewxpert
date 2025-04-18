@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ProfilePage.css";
 import { FaUser, FaEnvelope, FaCalendar, FaFileAlt, FaCertificate, FaTrash } from "react-icons/fa";
+import apiService from '../utils/apiService';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -27,47 +28,19 @@ const ProfilePage = () => {
 
   const fetchResume = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch resume');
-      }
-
-      const data = await response.json();
-      console.log("Resume data received:", !!data.pdfData); // Debug log
-      if (data && data.pdfData) {
-        setResume(data);
-      } else {
-        setError("No PDF data found in resume");
-      }
+      const response = await apiService.getResume();
+      setResume(response.data);
     } catch (error) {
-      console.error("Error fetching resume:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching resume:', error);
     }
   };
 
   const fetchCertificates = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch('http://localhost:3001/api/certificates/user', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      setCertificates(Array.isArray(data) ? data : []);
+      const response = await apiService.getCertificates();
+      setCertificates(response.data);
     } catch (error) {
       console.error('Error fetching certificates:', error);
-      setCertificates([]);
     }
   };
 
@@ -88,25 +61,11 @@ const ProfilePage = () => {
 
   const handleDeleteResume = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setResume(null);
-        setMessage("Resume deleted successfully");
-        setTimeout(() => setMessage(""), 3000);
-      } else {
-        throw new Error("Failed to delete resume");
-      }
+      await apiService.deleteResume();
+      setResume(null);
+      setMessage('Resume deleted successfully');
     } catch (error) {
-      console.error("Error deleting resume:", error);
-      setMessage("Failed to delete resume");
-      setTimeout(() => setMessage(""), 3000);
+      console.error('Error deleting resume:', error);
     }
   };
 
