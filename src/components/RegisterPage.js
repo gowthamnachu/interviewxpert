@@ -39,6 +39,7 @@ const RegisterPage = () => {
     setError("");
     setSuccessMessage("");
 
+    // Password validation checks
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -52,12 +53,16 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      console.log('Attempting registration...');
-      const apiUrl = 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/register';
+      // Use production or development URL
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://interviewxpertbackend.netlify.app/.netlify/functions/api'
+        : 'http://localhost:3001/api';
+
+      console.log('Registering with:', `${baseUrl}/register`);
       
       const response = await axios({
         method: 'post',
-        url: apiUrl,
+        url: `${baseUrl}/register`,
         data: {
           username,
           email,
@@ -65,32 +70,31 @@ const RegisterPage = () => {
         },
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+          'Origin': 'https://interviewxpert.netlify.app'
+        },
+        withCredentials: true,
+        timeout: 10000 // 10 second timeout
       });
 
-      console.log('Registration response:', response.data);
+      console.log('Registration successful:', response.data);
 
-      if (response.data.message) {
-        setSuccessMessage(response.data.message);
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
-      } else {
-        throw new Error('Invalid response from server');
-      }
+      setSuccessMessage("Account created successfully! Redirecting to login...");
+      setTimeout(() => navigate("/login"), 2000);
+
     } catch (err) {
-      console.error('Registration error:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
+      console.error('Registration failed:', {
+        error: err.message,
+        status: err.response?.status,
+        data: err.response?.data
       });
       
-      setError(
-        err.response?.data?.error || 
-        err.message || 
-        'Registration failed. Please try again.'
-      );
+      const errorMessage = err.response?.data?.error 
+        || err.response?.data?.message 
+        || err.message 
+        || 'Registration failed. Please try again.';
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
