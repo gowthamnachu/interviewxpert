@@ -11,9 +11,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Configure CORS with allowed origins
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3000',
   'https://interviewxpert.vercel.app',
-  'https://interviewxpert.netlify.app'
+  'https://interviewxpert.netlify.app',
+  'https://interviewxpertbackend.netlify.app'
 ];
 
 app.use(cors({
