@@ -8,7 +8,24 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors());
+
+// Configure CORS with allowed origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://interviewxpert.vercel.app',
+  'https://interviewxpert.netlify.app'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
   .then(() => {
