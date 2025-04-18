@@ -13,7 +13,7 @@
     "bcryptjs": "^2.4.3",
     "canvas-confetti": "^1.9.0",
     "chart.js": "^4.0.0",
-    "compression": "^1.8.0",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -32,14 +32,24 @@
     "serverless-http": "^3.2.0",
     "web-vitals": "^2.1.4"
   },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
   "scripts": {
+    "preinstall": "npx npm-force-resolutions",
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:frontend": "cross-env PORT=3000 react-scripts start",
     "start:backend": "cd backend && node server.js",
     "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
-    "build": "react-scripts build",
+    "build": "npm install --legacy-peer-deps && react-scripts build",
+    "postbuild": "cd backend && npm install",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
+  },
+  "resolutions": {
+    "nth-check": "^2.0.1",
+    "postcss": "^8.4.31"
   },
   "eslintConfig": {
     "extends": [
