@@ -19,9 +19,7 @@
   force = true
 
 [build.environment]
-  NODE_VERSION = "18.x"
-  MONGO_URI = "mongodb+srv://2310080023:Gowtham%40545@interviewxpert.vg5e3.mongodb.net/interviewxpert?retryWrites=true&w=majority"
-  JWT_SECRET = "your-super-secret-jwt-key-2024"
+  NODE_VERSION = "18.19.0"
 
 [dev]
   framework = "#custom"
