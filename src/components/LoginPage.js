@@ -13,55 +13,45 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
-    const loginUrl = process.env.NODE_ENV === 'production'
-      ? `${window.location.origin}${config.netlifyFunctionUrl}/login`
-      : `${config.apiBaseUrl}/login`;
+    const loginUrl = 'https://interviewxpert.netlify.app/.netlify/functions/api/login';
 
     try {
-      console.log('Attempting login at:', loginUrl); // Debug log
+      console.log('Attempting login at:', loginUrl);
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify({
-          usernameOrEmail,
-          password
+          username: usernameOrEmail, // Change to match backend expectation
+          password,
+          loginMethod: "password"
         }),
       });
 
-      // Add response validation
+      const data = await response.json();
+      console.log('Login response:', data); // Debug log
+
       if (!response.ok) {
-        console.error('Response status:', response.status); // Debug log
-        console.error('Response status text:', response.statusText); // Debug log
-        if (response.status === 404) {
-          throw new Error(`API endpoint not found at ${loginUrl}`);
-        }
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Login failed: ${response.statusText}`);
+        throw new Error(data.error || 'Login failed. Please try again.');
       }
 
-      const data = await response.json().catch(() => {
-        throw new Error('Invalid response from server');
-      });
-
-      if (!data || !data.token) {
-        throw new Error('Invalid response format from server');
+      if (!data.token) {
+        throw new Error('Invalid server response - no token received');
       }
 
       // Store token and user data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('userUsername', data.user.username);
-      localStorage.setItem('userEmail', data.user.email);
-      localStorage.setItem('registrationDate', data.user.registrationDate);
+      localStorage.setItem('userUsername', data.username);
+      localStorage.setItem('userEmail', data.email || usernameOrEmail);
+      localStorage.setItem('registrationDate', new Date().toISOString());
       localStorage.setItem('isLoggedIn', 'true');
 
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Connection failed. Please check your internet connection.');
+      setError(err.message || 'Connection failed. Please try again.');
     }
   };
 
