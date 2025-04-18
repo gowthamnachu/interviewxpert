@@ -4,7 +4,7 @@ import axios from 'axios';
 import QRCode from 'qrcode';
 import './Certificate.css';
 import { FaDownload, FaSpinner, FaSave, FaCheck } from 'react-icons/fa';
-import config from '../config';
+import { config } from '../config';  // Add this import
 
 const Certificate = ({ userName, domain, score, date }) => {
   const [loading, setLoading] = useState(false);
@@ -46,36 +46,26 @@ const Certificate = ({ userName, domain, score, date }) => {
       // Step 2: Save to Server
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Enhanced axios configuration
-      const response = await axios({
-        method: 'post',
-        url: `${config.apiUrl}/certificates`,
-        data: {
-          certificateId,
-          userId: decoded.userId,
-          userName,
-          fullName: userName,
-          domain,
-          score,
-          badgeLevel: calculateBadgeLevel(score),
-          issueDate: new Date(),
-          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-        },
+      const response = await axios.post(`${config.apiUrl}/certificates`, {
+        certificateId,
+        userId: decoded.userId,
+        userName,
+        fullName: userName,
+        domain,
+        score,
+        badgeLevel: calculateBadgeLevel(score),
+        issueDate: new Date(),
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+      }, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        validateStatus: function (status) {
-          return status < 500;
-        },
-        timeout: 30000
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (response.status !== 201 || !response.data) {
-        throw new Error(response.data?.error || 'Failed to save certificate data');
+      if (!response.data) {
+        throw new Error('Failed to save certificate data');
       }
 
       // Step 3: Prepare Download
