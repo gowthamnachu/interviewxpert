@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import config from '../config';
 import "./Auth.css";
 
 const LoginPage = ({ setIsLoggedIn }) => {
@@ -12,32 +13,35 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
-    const API_URL = process.env.NODE_ENV === 'production' 
-      ? 'https://interviewxpert.netlify.app/api/login'
-      : 'http://localhost:3001/api/login';
-
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${config.apiBaseUrl}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           usernameOrEmail,
           password
         }),
       });
 
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server error: Expected JSON response but got HTML. Please try again later.");
+      // Add response validation
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('API endpoint not found. Please check the server configuration.');
+        }
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Login failed: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json().catch(() => {
+        throw new Error('Invalid response from server');
+      });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      if (!data || !data.token) {
+        throw new Error('Invalid response format from server');
       }
 
       // Store token and user data
@@ -51,7 +55,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
       navigate("/select-domain");
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to connect to the server. Please try again later.');
+      setError(err.message || 'Connection failed. Please check your internet connection.');
     }
   };
 

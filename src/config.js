@@ -1,9 +1,7 @@
-const isDevelopment = process.env.NODE_ENV === 'development';
-
 const config = {
-  apiUrl: isDevelopment 
-    ? 'http://localhost:3001/api'
-    : process.env.REACT_APP_API_URL || '/.netlify/functions/api'
+  apiBaseUrl: process.env.NODE_ENV === 'production'
+    ? 'https://interviewxpert.netlify.app/.netlify/functions/api'
+    : 'http://localhost:3001/api'
 };
 
 export default config;
