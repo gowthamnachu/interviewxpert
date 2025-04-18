@@ -53,16 +53,12 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      // Use production or development URL
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://interviewxpertbackend.netlify.app/.netlify/functions/api'
-        : 'http://localhost:3001/api';
-
-      console.log('Registering with:', `${baseUrl}/register`);
+      const apiUrl = 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/register';
+      console.log('Registering with:', apiUrl);
       
       const response = await axios({
-        method: 'post',
-        url: `${baseUrl}/register`,
+        method: 'POST',
+        url: apiUrl,
         data: {
           username,
           email,
@@ -73,28 +69,21 @@ const RegisterPage = () => {
           'Accept': 'application/json',
           'Origin': 'https://interviewxpert.netlify.app'
         },
-        withCredentials: true,
-        timeout: 10000 // 10 second timeout
+        validateStatus: (status) => status < 500
       });
 
-      console.log('Registration successful:', response.data);
+      console.log('Registration response:', response.data);
 
-      setSuccessMessage("Account created successfully! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 2000);
+      if (response.status === 201 || response.status === 200) {
+        setSuccessMessage(response.data.message || "Account created successfully!");
+        setTimeout(() => navigate("/login"), 2000);
+      } else {
+        throw new Error(response.data.error || 'Registration failed');
+      }
 
     } catch (err) {
-      console.error('Registration failed:', {
-        error: err.message,
-        status: err.response?.status,
-        data: err.response?.data
-      });
-      
-      const errorMessage = err.response?.data?.error 
-        || err.response?.data?.message 
-        || err.message 
-        || 'Registration failed. Please try again.';
-      
-      setError(errorMessage);
+      console.error('Registration error:', err.response || err);
+      setError(err.response?.data?.error || err.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
