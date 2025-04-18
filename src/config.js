@@ -1,6 +1,6 @@
 const config = {
   apiBaseUrl: process.env.NODE_ENV === 'production'
-    ? 'https://interviewxpert.netlify.app/.netlify/functions/api'  // Updated Netlify functions path
+    ? '/.netlify/functions/api'  // Updated to use relative path
     : 'http://localhost:3001/api',
   isDevelopment: process.env.NODE_ENV === 'development'
 };

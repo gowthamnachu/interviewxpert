@@ -2,6 +2,7 @@ const express = require('express');
 const serverless = require('serverless-http');
 const mongoose = require('mongoose');
 const app = express();
+const router = express.Router();
 
 // Import your existing models and routes
 const Question = require('../../backend/models/Question');
@@ -19,8 +20,8 @@ mongoose.connect(process.env.MONGO_URI, {
   console.error("MongoDB Connection Error:", err);
 });
 
-// Your existing routes go here
-app.get('/.netlify/functions/api/questions', async (req, res) => {
+// Configure routes
+router.get('/questions', async (req, res) => {
   try {
     const { domain } = req.query;
     const query = domain ? { domain } : {};
@@ -31,6 +32,17 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
   }
 });
 
-// Add all your other routes similarly
+router.post('/login', async (req, res) => {
+  try {
+    const { usernameOrEmail, password } = req.body;
+    // Your login logic here
+    // ...existing code...
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.use('/.netlify/functions/api', router);
 
 module.exports.handler = serverless(app);
