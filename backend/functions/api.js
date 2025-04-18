@@ -2,29 +2,24 @@ const express = require('express');
 const serverless = require('serverless-http');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 const app = express();
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Middleware
+app.use(express.json());
+app.use(cors({
+  origin: 'https://interviewxpert.netlify.app',
+  credentials: true
+}));
 
-// Enable CORS for all routes
-app.use(cors());
-
-// Add request logging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`, req.body);
-  next();
-});
-
-// Connect to MongoDB
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log("MongoDB Connected");
-}).catch(err => {
-  console.error("MongoDB Connection Error:", err);
-});
+  useUnifiedTopology: true
+}).then(() => console.log('MongoDB Connected'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Import models
 const Question = require('./models/Question');
@@ -32,7 +27,7 @@ const User = require('./models/User');
 const Resume = require('./models/Resume');
 const Certificate = require('./models/Certificate');
 
-// Routes with error handling
+// Routes
 app.get('/.netlify/functions/api/questions', async (req, res) => {
   try {
     console.log('Received request for questions:', req.query);
@@ -50,13 +45,81 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
   }
 });
 
-// Error handling middleware
+app.post('/.netlify/functions/api/login', async (req, res) => {
+  try {
+    console.log('Login request received:', {
+      body: req.body,
+      headers: req.headers
+    });
+
+    const { usernameOrEmail, password } = req.body;
+
+    if (!usernameOrEmail || !password) {
+      return res.status(400).json({ 
+        error: "Username/email and password are required" 
+      });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { username: usernameOrEmail },
+        { email: usernameOrEmail }
+      ]
+    });
+
+    console.log('User found:', user ? 'Yes' : 'No');
+
+    if (!user) {
+      return res.status(401).json({ 
+        error: "Invalid credentials" 
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isMatch ? 'Yes' : 'No');
+
+    if (!isMatch) {
+      return res.status(401).json({ 
+        error: "Invalid credentials" 
+      });
+    }
+
+    const token = jwt.sign(
+      { 
+        userId: user._id,
+        username: user.username,
+        email: user.email 
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        username: user.username,
+        email: user.email,
+        registrationDate: user.registrationDate
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      error: "Login failed",
+      details: error.message 
+    });
+  }
+});
+
+// Not found handler
+app.use('/.netlify/functions/api/*', (req, res) => {
+  res.status(404).json({ error: `Cannot ${req.method} ${req.url}` });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    error: 'Something broke!',
-    details: err.message
-  });
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
 module.exports.handler = serverless(app);

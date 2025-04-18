@@ -6,8 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "build": "npm install && mkdir -p functions && cp -r models functions/ && cp -r routes functions/ && npm run create-function",
-    "create-function": "node create-function.js",
+    "build": "mkdir -p functions && cp -r models functions/ && cp -r routes functions/ && echo '<!DOCTYPE html><html><head><title>InterviewXpert API</title></head><body><h1>InterviewXpert API</h1></body></html>' > public/index.html",
     "dev": "nodemon server.js",
     "seed": "node seed.js"
   },
@@ -26,6 +25,6 @@
     "nodemon": "^2.0.22"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }
