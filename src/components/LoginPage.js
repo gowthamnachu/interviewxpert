@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import "./Auth.css";
-import config from "../config"; // Add this import
 
 const LoginPage = ({ setIsLoggedIn }) => {
   const navigate = useNavigate();
@@ -14,38 +14,34 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setError("");
 
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/login'
-        : `${config.apiUrl}/login`;
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://interviewxpertbackend.netlify.app/.netlify/functions/api'
+        : 'http://localhost:3001/api';
 
-      console.log('Attempting login with URL:', apiUrl); // Debug log
+      console.log('Attempting login with URL:', `${baseUrl}/login`);
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
+      const response = await axios({
+        method: 'post',
+        url: `${baseUrl}/login`,
+        data: {
           usernameOrEmail,
           password
-        }),
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        validateStatus: (status) => status < 500
       });
 
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response:', await response.text());
-        throw new Error('Server returned invalid response');
+      console.log('Response:', response);
+
+      if (response.status !== 200) {
+        throw new Error(response.data.error || 'Login failed');
       }
 
-      const data = await response.json();
-      console.log('Login response:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
+      const { data } = response;
+      
       // Store token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('userUsername', data.user.username);
@@ -56,8 +52,12 @@ const LoginPage = ({ setIsLoggedIn }) => {
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err.message || 'Failed to connect to the server. Please try again.');
+      console.error('Login error:', err.response || err);
+      setError(
+        err.response?.data?.error || 
+        err.message || 
+        'Failed to connect to the server. Please try again.'
+      );
     }
   };
 
