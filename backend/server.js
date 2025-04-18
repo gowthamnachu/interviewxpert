@@ -8,26 +8,34 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors());
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
-  .then(() => {
-    console.log("✅ MongoDB Connected");
-  })
-  .catch(err => {
-    console.error("❌ MongoDB Connection Error:", err);
-    if (!process.env.MONGO_URI) {
-      console.error("MONGO_URI environment variable is not set!");
-      console.log("Please check that:");
-      console.log("1. You have created a .env file in the project root");
-      console.log("2. The .env file contains MONGO_URI=your_mongodb_connection_string");
-    }
-    console.log("\nIf using MongoDB Atlas, ensure your IP address is whitelisted:");
-    console.log("1. Go to MongoDB Atlas dashboard");
-    console.log("2. Click Network Access under Security");
-    console.log("3. Click '+ ADD IP ADDRESS' and add your current IP");
-    process.exit(1);
-  });
+// Update CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Update MongoDB connection with better error handling
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000
+})
+.then(() => {
+  console.log("✅ MongoDB Connected");
+})
+.catch(err => {
+  console.error("❌ MongoDB Connection Error:", err);
+  console.log("\nTroubleshooting steps:");
+  console.log("1. Check if MongoDB is running");
+  console.log("2. Verify MONGO_URI in .env file");
+  console.log("3. Check network connectivity");
+  console.log("4. Verify IP whitelist in MongoDB Atlas");
+});
 
 const Question = require("./models/Question");
 const User = require("./models/User");
@@ -119,10 +127,13 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // Update JWT authentication to use environment variable
+    const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
     // Create JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
-      "your-secret-key", // Replace with actual secret from env
+      JWT_SECRET,
       { expiresIn: "24h" }
     );
 
@@ -147,7 +158,7 @@ app.post("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
     const userId = decoded.userId;
 
     const resumeData = { ...req.body, userId };
@@ -178,7 +189,7 @@ app.get("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
     const resume = await Resume.findOne({ userId: decoded.userId });
     
     if (!resume) {
@@ -200,7 +211,7 @@ app.put("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
     const userId = decoded.userId;
 
     const updatedResume = await Resume.findOneAndUpdate(
@@ -226,7 +237,7 @@ app.delete("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
     const result = await Resume.findOneAndDelete({ userId: decoded.userId });
     
     if (!result) {
@@ -247,7 +258,7 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
     const { certificateId, domain, score, userName, fullName } = req.body;
 
     // Validate required fields
@@ -324,7 +335,7 @@ app.get("/api/certificates/user", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
     const certificates = await CertificateModel.find({ userId: decoded.userId });
     res.json(certificates);
   } catch (error) {
@@ -344,9 +355,10 @@ app.delete('/api/certificates/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('====================================');
   console.log(`🚀 Backend server running on port ${PORT}`);
   console.log(`📑 API endpoints available at http://localhost:${PORT}/api`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
   console.log('====================================');
 });
