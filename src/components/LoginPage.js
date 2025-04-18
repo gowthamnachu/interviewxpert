@@ -12,8 +12,12 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
+    const API_URL = process.env.NODE_ENV === 'production' 
+      ? 'https://interviewxpert.netlify.app/.netlify/functions/api/login'
+      : 'http://localhost:3001/api/login';
+
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
