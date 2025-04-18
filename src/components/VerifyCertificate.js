@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import confetti from 'canvas-confetti';
 import './VerifyCertificate.css';
-import { config } from '../config';
+
 const VerifyCertificate = () => {
   const { certificateId: urlCertificateId } = useParams();
   const [certificateId, setCertificateId] = useState('');
@@ -38,7 +38,7 @@ const VerifyCertificate = () => {
       // Step 2: Certificate verification
       setVerificationStep(2);
       const response = await axios.get(
-        `${config.apiUrl}/certificates/verify/${encodeURIComponent(certificateId.trim())}`,
+        `http://localhost:3001/api/certificates/verify/${encodeURIComponent(certificateId.trim())}`,
         {
           headers: {
             'Content-Type': 'application/json',

@@ -4,7 +4,6 @@ import axios from 'axios';
 import QRCode from 'qrcode';
 import './Certificate.css';
 import { FaDownload, FaSpinner, FaSave, FaCheck } from 'react-icons/fa';
-import { config } from '../config';
 
 const Certificate = ({ userName, domain, score, date }) => {
   const [loading, setLoading] = useState(false);
@@ -43,47 +42,28 @@ const Certificate = ({ userName, domain, score, date }) => {
       const decoded = JSON.parse(atob(token.split('.')[1]));
       const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
-      // Step 2: Save to Server with retry mechanism
+      // Step 2: Save to Server
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const makeRequest = async (attempt) => {
-        try {
-          return await axios.post(`${config.apiUrl}/certificates`, {
-            certificateId,
-            userId: decoded.userId,
-            userName,
-            fullName: userName,
-            domain,
-            score,
-            badgeLevel: calculateBadgeLevel(score),
-            issueDate: new Date(),
-            expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-            grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-          }, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            validateStatus: function (status) {
-              return status < 500;
-            },
-            timeout: 30000
-          });
-        } catch (err) {
-          if (attempt === 2) throw err;
-          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-          return null;
+      const response = await axios.post('http://localhost:3001/api/certificates', {
+        certificateId,
+        userId: decoded.userId,
+        userName,
+        fullName: userName,
+        domain,
+        score,
+        badgeLevel: calculateBadgeLevel(score),
+        issueDate: new Date(),
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      };
+      });
 
-      let response;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        response = await makeRequest(attempt);
-        if (response) break;
-      }
-
-      if (!response?.data) {
+      if (!response.data) {
         throw new Error('Failed to save certificate data');
       }
 
@@ -213,12 +193,8 @@ const Certificate = ({ userName, domain, score, date }) => {
         setError('Authentication failed. Please login again.');
       } else if (error.response?.status === 500) {
         setError('Server error. Please try again later.');
-      } else if (error.response?.status === 503 || error.response?.status === 429) {
-        setError('Server is temporarily unavailable. Please try again in a few minutes.');
-      } else if (error.code === 'ECONNABORTED') {
-        setError('Request timed out. Please check your connection and try again.');
       } else {
-        setError(`Failed to generate certificate: ${errorMessage}. Please try again.`);
+        setError(`Failed to generate certificate: ${errorMessage}`);
       }
     } finally {
       setLoading(false);
