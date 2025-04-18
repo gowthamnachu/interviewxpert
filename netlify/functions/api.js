@@ -22,12 +22,12 @@ mongoose.connect(process.env.MONGO_URI, {
 // Parse JSON bodies
 app.use(express.json());
 
-// Base route
-app.get('/', async (req, res) => {
-  res.json({ message: "API is working" });
+// Base route for testing
+app.get('/', (req, res) => {
+  res.json({ message: 'API is running' });
 });
 
-// Questions route - update path
+// Questions route - simplified path
 app.get('/questions', async (req, res) => {
   try {
     const { domain } = req.query;
@@ -35,15 +35,15 @@ app.get('/questions', async (req, res) => {
     const questions = await Question.find(query);
     res.json(questions);
   } catch (error) {
+    console.error('Error fetching questions:', error);
     res.status(500).json({ error: "Failed to fetch questions" });
   }
 });
 
-// Add error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Export handler
-exports.handler = serverless(app);
+module.exports.handler = serverless(app);

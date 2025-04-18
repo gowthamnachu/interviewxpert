@@ -6,11 +6,13 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["mongoose"]
+  included_files = ["backend/models/**"]
 
 [[redirects]]
-  from = "/.netlify/functions/api/*"
+  from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
