@@ -10,6 +10,11 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
+// Add health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend server is running' });
+});
+
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
   .then(() => {
     console.log("✅ MongoDB Connected");

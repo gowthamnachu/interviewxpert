@@ -15,9 +15,11 @@ import XBot from "./components/XBot";
 import ExpertAI from "./components/ExpertAI";
 import MockTest from "./components/MockTest";
 import VerifyCertificate from "./components/VerifyCertificate";
+import { NotificationProvider, useNotification } from './context/NotificationContext';
 import "./App.css";
 
-const App = () => {
+function AppContent() {
+  const { showNotification } = useNotification();
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("isLoggedIn") === "true");
   const [showIntro, setShowIntro] = useState(true);
 
@@ -26,10 +28,26 @@ const App = () => {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    // Hide the intro video after it finishes
     const timer = setTimeout(() => setShowIntro(false), 5000); // Adjust based on actual video length
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const checkBackendConnection = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/health');
+        if (response.ok) {
+          showNotification('Successfully connected to backend server', 'success');
+        } else {
+          showNotification('Backend server is not responding properly', 'error');
+        }
+      } catch (error) {
+        showNotification('Unable to connect to backend server', 'error');
+      }
+    };
+
+    checkBackendConnection();
+  }, [showNotification]);
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
@@ -64,6 +82,14 @@ const App = () => {
       )}
     </Router>
   );
-};
+}
+
+function App() {
+  return (
+    <NotificationProvider>
+      <AppContent />
+    </NotificationProvider>
+  );
+}
 
 export default App;
