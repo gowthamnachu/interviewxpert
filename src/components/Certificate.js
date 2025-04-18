@@ -27,6 +27,49 @@ const Certificate = ({ userName, domain, score, date }) => {
   };
 
   const generateCertificate = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
+      const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log('Making request to:', `${config.apiUrl}/certificates`);
+      const response = await axios.post(
+        `${config.apiUrl}/certificates`,
+        {
+          certificateId,
+          userName,
+          fullName: userName,
+          domain,
+          score,
+          badgeLevel: calculateBadgeLevel(score),
+          issueDate: new Date(),
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Certificate saved:', response.data);
+      await generatePDF(certificateId);
+    } catch (error) {
+      console.error('Certificate Error:', error.response?.data || error.message);
+      setError(error.response?.data?.error || 'Failed to save certificate. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generatePDF = async (certificateId) => {
     setLoading(true);
     setError(null);
     setSaving(false);
@@ -46,7 +89,6 @@ const Certificate = ({ userName, domain, score, date }) => {
 
       // eslint-disable-next-line no-unused-vars
       const decoded = JSON.parse(atob(token.split('.')[1]));
-      const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
       // Step 2: Save to Server
       setCurrentStep(2);
@@ -282,12 +324,20 @@ const Certificate = ({ userName, domain, score, date }) => {
           {downloadSteps.map((step) => (
             <div
               key={step.id}
-              className={`step ${currentStep >= step.id ? 'active' : ''} 
-                         ${currentStep > step.id ? 'completed' : ''}`}
+              className={`step ${currentStep >= step.id ? 'active' : ''} ${
+                currentStep > step.id ? 'completed' : ''
+              }`}
             >
-              <div className="step-icon">{step.icon}</div>
+              <div className="step-icon">
+                {currentStep > step.id ? (
+                  <FaCheck />
+                ) : currentStep === step.id ? (
+                  <FaSpinner className="spinner" />
+                ) : (
+                  step.icon
+                )}
+              </div>
               <div className="step-text">{step.text}</div>
-              <div className="step-loader"></div>
             </div>
           ))}
         </div>
