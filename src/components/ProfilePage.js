@@ -30,37 +30,35 @@ const ProfilePage = () => {
   const fetchResume = async () => {
     try {
       setLoading(true);
-      setLoadingState('Fetching resume data...');
       setError(null);
       const token = localStorage.getItem("token");
+      console.log("Fetching resume...");
+
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch resume');
+        throw new Error(`Server responded with ${response.status}`);
       }
 
       const data = await response.json();
-      setLoadingState('Processing resume information...');
-      console.log("Resume data received:", !!data.pdfData); // Debug log
+      console.log("Resume data received:", !!data);
       if (data && data.pdfData) {
         setResume(data);
-        setLoadingState('Resume loaded successfully!');
       } else {
-        setError("No PDF data found in resume");
+        console.log("No resume data found");
+        setResume(null);
       }
     } catch (error) {
-      console.error("Error fetching resume:", error);
-      setError(error.message);
+      console.error("Resume fetch error:", error);
+      setError(`Failed to load resume: ${error.message}`);
+      setResume(null);
     } finally {
-      setTimeout(() => {
-        setLoading(false);
-        setLoadingState('');
-      }, 500);
+      setLoading(false);
     }
   };
 
