@@ -5,6 +5,7 @@ import "chart.js/auto"; // Required for Chart.js
 import "./TakeInterview.css"; // Import the CSS file
 import LoadingSpinner from "./LoadingSpinner";
 import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import config from '../config';
 
 const TakeInterview = () => {
   const [selectedDomain, setSelectedDomain] = useState('');
@@ -106,7 +107,7 @@ const TakeInterview = () => {
   const fetchQuestions = async (domain) => {
     try {
       setError(""); // Clear any previous errors
-      const response = await axios.get(`http://localhost:3001/api/questions?domain=${domain}`);
+      const response = await axios.get(`${config.apiUrl}/api/questions?domain=${domain}`);
       if (!response.data || response.data.length === 0) {
         setError(`No questions found for ${domain}. Please try another domain.`);
         setLoading(false);
