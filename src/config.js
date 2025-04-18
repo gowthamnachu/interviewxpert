@@ -7,5 +7,5 @@ const getApiUrl = () => {
 
 export const config = {
   apiUrl: getApiUrl(),
-  env: process.env.NODE_ENV
+  env: process.env.NODE_ENV || 'development'
 };

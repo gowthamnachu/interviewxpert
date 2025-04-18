@@ -100,51 +100,83 @@ const ProfilePage = () => {
     navigate("/login");
   };
 
-  const handleDownloadResume = () => {
+  const handleDownloadResume = async () => {
     try {
-      if (resume?.pdfData) {
-        // Ensure pdfData is properly formatted as a base64 data URI
-        const pdfData = resume.pdfData.startsWith('data:application/pdf;base64,')
-          ? resume.pdfData
-          : `data:application/pdf;base64,${resume.pdfData}`;
+      if (!navigator.onLine) {
+        throw new Error('Please check your internet connection');
+      }
 
-        // Create a temporary link element to trigger the download
+      if (!resume?.pdfData) {
+        throw new Error('No PDF data found');
+      }
+
+      // Clean and validate the base64 data
+      let base64Data = resume.pdfData;
+      if (base64Data.includes(',')) {
+        base64Data = base64Data.split(',')[1];
+      }
+      if (!base64Data) {
+        throw new Error('Invalid PDF data format');
+      }
+
+      try {
+        // Create blob from base64
+        const binaryData = atob(base64Data);
+        const byteNumbers = new Array(binaryData.length);
+        for (let i = 0; i < binaryData.length; i++) {
+          byteNumbers[i] = binaryData.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+        // Create and trigger download
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = pdfData;
+        link.href = url;
         link.download = `${resume.name || 'resume'}.pdf`;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-      } else {
-        setError('PDF data not found in resume');
+
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      } catch (e) {
+        console.error('PDF decode error:', e);
+        throw new Error('Invalid PDF format');
       }
+
     } catch (error) {
       console.error('Resume download error:', error);
-      setError('Failed to download resume');
+      setError(`Failed to download resume: ${error.message}`);
+      setTimeout(() => setError(null), 3000);
     }
   };
 
   const handleDeleteResume = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/resume`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
-        setResume(null);
-        setMessage("Resume deleted successfully");
-        setTimeout(() => setMessage(""), 3000);
-      } else {
-        throw new Error("Failed to delete resume");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete resume');
       }
-    } catch (error) {
-      console.error("Error deleting resume:", error);
-      setMessage("Failed to delete resume");
+
+      setResume(null);
+      setMessage("Resume deleted successfully");
       setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Resume deletion error:", error);
+      setError(`Failed to delete resume: ${error.message}`);
+      setTimeout(() => setError(""), 3000);
     }
   };
 
@@ -238,7 +270,11 @@ const ProfilePage = () => {
         <div className="loading-spinner">Loading resume...</div>
       ) : resume ? (
         <div className="resume-actions">
-          <button className="action-btn download" onClick={handleDownloadResume}>
+          <button 
+            className="action-btn download" 
+            onClick={handleDownloadResume}
+            disabled={!navigator.onLine}
+          >
             <FaDownload /> Download Resume
           </button>
           <button className="action-btn edit" onClick={handleEditResume}>

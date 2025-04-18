@@ -79,7 +79,6 @@ const ResumePage = () => {
   // Handle PDF generation and store in localStorage
   const handleDownloadResume = async () => {
     try {
-      // Generate the PDF using jsPDF
       const doc = new jsPDF();
 
       // Add the profile picture if it exists
@@ -187,13 +186,15 @@ const ResumePage = () => {
 
       // Convert the PDF to a base64 string
       const pdfBase64 = doc.output('datauristring');
-
       const token = localStorage.getItem("token");
+      
+      console.log('Saving resume to:', `${config.apiUrl}/resume`);
+      
       const response = await fetch(`${config.apiUrl}/resume`, {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           name,
@@ -205,14 +206,18 @@ const ResumePage = () => {
           languages,
           volunteerExperience,
           photo,
-          pdfData: pdfBase64 // Save the PDF as a base64 data URI
+          pdfData: pdfBase64,
+          updatedAt: new Date().toISOString()
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save resume');
+        throw new Error(errorData.error || `Server responded with status ${response.status}`);
       }
+
+      const result = await response.json();
+      console.log('Resume saved successfully:', result);
 
       setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
       doc.save(`${name}_resume.pdf`);
@@ -223,6 +228,7 @@ const ResumePage = () => {
     } catch (error) {
       console.error("Resume save error:", error);
       setMessage(`Failed to ${isEditing ? 'update' : 'create'} resume: ${error.message}`);
+      setTimeout(() => setMessage(""), 5000);
     }
   };
 

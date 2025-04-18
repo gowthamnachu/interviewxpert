@@ -118,6 +118,8 @@ app.post("/api/register", async (req, res) => {
 });
 
 // Login route
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2024";
+
 app.post("/api/login", async (req, res) => {
   try {
     const { usernameOrEmail, password } = req.body;
@@ -140,7 +142,7 @@ app.post("/api/login", async (req, res) => {
     // Create JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
-      "your-secret-key", // Replace with actual secret from env
+      JWT_SECRET,
       { expiresIn: "24h" }
     );
 
@@ -165,7 +167,7 @@ app.post("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
 
     const resumeData = { ...req.body, userId };
@@ -196,7 +198,7 @@ app.get("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
     const resume = await Resume.findOne({ userId: decoded.userId });
     
     if (!resume) {
@@ -218,7 +220,7 @@ app.put("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
 
     const updatedResume = await Resume.findOneAndUpdate(
@@ -244,7 +246,7 @@ app.delete("/api/resume", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
     const result = await Resume.findOneAndDelete({ userId: decoded.userId });
     
     if (!result) {
@@ -265,7 +267,7 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
     const { certificateId, domain, score, userName, fullName } = req.body;
 
     // Validate required fields
@@ -342,7 +344,7 @@ app.get("/api/certificates/user", async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
     const certificates = await CertificateModel.find({ userId: decoded.userId });
     res.json(certificates);
   } catch (error) {
