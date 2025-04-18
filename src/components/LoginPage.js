@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import config from '../config';
 import "./Auth.css";
 
 const LoginPage = ({ setIsLoggedIn }) => {
@@ -13,7 +12,9 @@ const LoginPage = ({ setIsLoggedIn }) => {
     e.preventDefault();
     setError("");
 
-    const loginUrl = 'https://interviewxpert.netlify.app/.netlify/functions/api/login';
+    const loginUrl = process.env.NODE_ENV === 'development' 
+      ? 'http://localhost:3001/api/login'
+      : '/.netlify/functions/api/login';
 
     try {
       console.log('Attempting login at:', loginUrl);
@@ -23,9 +24,8 @@ const LoginPage = ({ setIsLoggedIn }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: usernameOrEmail, // Change to match backend expectation
+          usernameOrEmail,
           password,
-          loginMethod: "password"
         }),
       });
 
