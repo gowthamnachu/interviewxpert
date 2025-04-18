@@ -1,9 +1,16 @@
-require("dotenv").config();
+// Update dotenv config to load from the correct path
+const path = require('path');
+require("dotenv").config({ path: path.join(__dirname, '../.env') });
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET environment variable is not set!");
+  process.exit(1);
+}
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -117,9 +124,10 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Login route
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-2024";
+const JWT_SECRET = process.env.JWT_SECRET;
+console.log('JWT Secret initialized'); // Debug log
 
+// Login route
 app.post("/api/login", async (req, res) => {
   try {
     const { usernameOrEmail, password } = req.body;
@@ -142,9 +150,10 @@ app.post("/api/login", async (req, res) => {
     // Create JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, email: user.email },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
+    console.log('Token generated successfully'); // Debug log
 
     res.json({
       token,
@@ -161,13 +170,14 @@ app.post("/api/login", async (req, res) => {
 });
 
 // Add middleware for token verification
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "No token provided" });
     }
-    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('Verifying token...'); // Debug log
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -260,7 +270,7 @@ app.post('/api/certificates', async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { certificateId, domain, score, userName, fullName } = req.body;
 
     // Validate required fields
@@ -330,15 +340,9 @@ app.get("/api/certificates/verify/:id", async (req, res) => {
   }
 });
 
-app.get("/api/certificates/user", async (req, res) => {
+app.get("/api/certificates/user", verifyToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const certificates = await CertificateModel.find({ userId: decoded.userId });
+    const certificates = await CertificateModel.find({ userId: req.user.userId });
     res.json(certificates);
   } catch (error) {
     console.error("Certificate fetch error:", error);

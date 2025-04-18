@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { config } from '../config';
 import "./ProfilePage.css";
@@ -19,13 +19,66 @@ const ProfilePage = () => {
   const registrationDate = localStorage.getItem("registrationDate");
   const formattedRegistrationDate = new Date(registrationDate).toLocaleDateString("en-GB");
 
+  const fetchCertificates = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const response = await fetch(`${config.apiUrl}/certificates/user`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 401) {
+        // Token is invalid
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCertificates(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Certificate fetch error:', error);
+      setError(`Failed to load certificates: ${error.message}`);
+      setCertificates([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
   useEffect(() => {
+    // Check token validity
+    const token = localStorage.getItem('token');
+    const tokenExpiry = localStorage.getItem('tokenExpiry');
+    
+    if (!token || !tokenExpiry || new Date().getTime() > parseInt(tokenExpiry)) {
+      // Token is missing or expired
+      localStorage.clear();
+      navigate("/login");
+      return;
+    }
+
     if (!localStorage.getItem("isLoggedIn")) {
       navigate("/login");
+      return;
     }
+
     fetchResume();
     fetchCertificates();
-  }, [navigate]);
+  }, [navigate, fetchCertificates]);
 
   const fetchResume = async () => {
     try {
@@ -61,36 +114,6 @@ const ProfilePage = () => {
         setLoading(false);
         setLoadingState('');
       }, 500);
-    }
-  };
-
-  const fetchCertificates = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem("token");
-      console.log('Fetching certificates...');
-      
-      const response = await fetch(`${config.apiUrl}/certificates/user`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Certificates received:', data);
-      setCertificates(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Certificate fetch error:', error);
-      setError(`Failed to load certificates: ${error.message}`);
-      setCertificates([]);
-    } finally {
-      setLoading(false);
     }
   };
 

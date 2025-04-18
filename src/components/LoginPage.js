@@ -36,7 +36,10 @@ const LoginPage = ({ setIsLoggedIn }) => {
 
       const { token, user } = response.data;
       
+      // Store token with expiration time (24 hours from now)
+      const expiresAt = new Date().getTime() + (24 * 60 * 60 * 1000);
       localStorage.setItem('token', token);
+      localStorage.setItem('tokenExpiry', expiresAt.toString());
       localStorage.setItem('userUsername', user.username);
       localStorage.setItem('userEmail', user.email);
       localStorage.setItem('registrationDate', user.registrationDate);

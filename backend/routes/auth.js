@@ -143,9 +143,11 @@ router.post("/login", async (req, res) => {
       return res.json({ message: "OTP sent to your email" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "24h"
-    });
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
 
     res.json({ token, username: user.username });
   } catch (error) {
@@ -182,9 +184,11 @@ router.post("/verify-login-otp", async (req, res) => {
     }
 
     await OTP.deleteMany({ email, purpose: "login" });
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "24h"
-    });
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
 
     res.json({ token, username: user.username });
   } catch (error) {

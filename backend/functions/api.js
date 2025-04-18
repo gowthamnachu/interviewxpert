@@ -55,17 +55,23 @@ const certificateSchema = new mongoose.Schema({
 const Certificate = mongoose.models.Certificate || mongoose.model('Certificate', certificateSchema);
 
 // Add auth middleware
-const authMiddleware = async (req, res, next) => {
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET environment variable is not set!");
+  throw new Error("JWT_SECRET must be configured");
+}
+
+const verifyToken = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "No token provided" });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    console.log('Verifying token in Netlify function...'); // Debug log
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error('Token verification error:', error);
     res.status(401).json({ error: "Invalid token" });
   }
 };
@@ -133,7 +139,7 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
         username: user.username,
         email: user.email 
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -155,7 +161,7 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
 });
 
 // Protected routes
-app.get('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
+app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
   try {
     const resume = await Resume.findOne({ userId: req.user.userId });
     res.json(resume || {});
@@ -165,7 +171,7 @@ app.get('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
+app.post('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
   try {
     const resumeData = { ...req.body, userId: req.user.userId };
     const resume = await Resume.findOneAndUpdate(
@@ -181,7 +187,7 @@ app.post('/.netlify/functions/api/resume', authMiddleware, async (req, res) => {
 });
 
 // Get user certificates
-app.get('/.netlify/functions/api/certificates/user', async (req, res) => {
+app.get('/.netlify/functions/api/certificates/user', verifyToken, async (req, res) => {
   try {
     await connectToDatabase();
     
@@ -190,7 +196,7 @@ app.get('/.netlify/functions/api/certificates/user', async (req, res) => {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("Fetching certificates for user:", decoded.userId);
 
     const certificates = await Certificate.find({ userId: decoded.userId });
@@ -231,7 +237,7 @@ app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
 });
 
 // Delete certificate
-app.delete('/.netlify/functions/api/certificates/:id', authMiddleware, async (req, res) => {
+app.delete('/.netlify/functions/api/certificates/:id', verifyToken, async (req, res) => {
   try {
     const result = await Certificate.findOneAndDelete({
       _id: req.params.id,
