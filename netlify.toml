@@ -3,6 +3,10 @@
   functions = "netlify/functions"
   publish = "build"
 
+[build.environment]
+  JWT_SECRET = "your-super-secret-jwt-key-2024"
+  NODE_VERSION = "18"
+
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["mongoose"]

@@ -1,6 +1,7 @@
 const express = require('express');
 const serverless = require('serverless-http');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const app = express();
 
 // Import your existing models and routes
@@ -19,6 +20,24 @@ mongoose.connect(process.env.MONGO_URI, {
   console.error("MongoDB Connection Error:", err);
 });
 
+// Add JWT verification middleware
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (error) {
+    console.error("Token verification error:", error);
+    return res.status(401).json({ error: "Invalid token" });
+  }
+};
+
 // Your existing routes go here
 app.get('/.netlify/functions/api/questions', async (req, res) => {
   try {
@@ -31,6 +50,17 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
   }
 });
 
-// Add all your other routes similarly
+// Protected routes
+app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
+  // Add your logic for fetching resumes here
+});
+
+app.post('/.netlify/functions/api/certificates', verifyToken, async (req, res) => {
+  // Add your logic for creating certificates here
+});
+
+app.get('/.netlify/functions/api/certificates', verifyToken, async (req, res) => {
+  // Add your logic for fetching certificates here
+});
 
 module.exports.handler = serverless(app);
