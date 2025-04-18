@@ -1,18 +1,13 @@
 [build]
-  command = "npm run build"
-  publish = "build"
   functions = "netlify/functions"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "16"
 
 [functions]
+  external_node_modules = ["express", "mongoose"]
   node_bundler = "esbuild"
-  external_node_modules = ["mongoose"]
-  included_files = ["backend/models/**"]
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
 
 [[redirects]]
   from = "/*"

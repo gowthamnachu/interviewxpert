@@ -5,7 +5,6 @@
   "private": true,
   "dependencies": {
     "@csstools/normalize.css": "^12.1.1",
-    "@netlify/functions": "^2.0.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -29,7 +28,6 @@
     "react-icons": "^4.11.0",
     "react-router-dom": "^6.17.0",
     "react-scripts": "5.0.1",
-    "serverless-http": "^3.2.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -60,11 +58,13 @@
     ]
   },
   "devDependencies": {
+    "@netlify/functions": "^3.1.2",
     "@types/npm": "^7.19.3",
     "ajv": "8.12.0",
     "ajv-keywords": "5.1.0",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "json-schema-traverse": "^1.0.0"
+    "json-schema-traverse": "^1.0.0",
+    "serverless-http": "^3.2.0"
   }
 }
