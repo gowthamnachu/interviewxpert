@@ -52,19 +52,24 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      // Updated endpoint URL to use Netlify functions path
       const response = await fetch(`${config.apiUrl}/.netlify/functions/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           username,
           email,
           password
-        }),
-        credentials: 'include'
+        })
       });
+
+      // Check if the response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server error: Invalid response format");
+      }
 
       const data = await response.json();
 

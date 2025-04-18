@@ -8,11 +8,12 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 // Middleware
-app.use(express.json());
 app.use(cors({
-  origin: 'https://interviewxpert.netlify.app',
+  origin: true,
   credentials: true
 }));
+
+app.use(express.json());
 
 // Ensure MongoDB connection
 let cachedDb = null;
@@ -165,6 +166,11 @@ app.post("/.netlify/functions/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
     
+    // Validate request body
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
