@@ -160,6 +160,28 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
   }
 });
 
+// Register route
+app.post("/.netlify/functions/api/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(400).json({ error: "Username or email already exists" });
+    }
+
+    // Create new user
+    const user = new User({ username, email, password });
+    await user.save();
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
+
 // Protected routes
 app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
   try {

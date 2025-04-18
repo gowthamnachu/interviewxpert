@@ -52,7 +52,8 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${config.apiUrl}/register`, {
+      // Updated endpoint URL to use Netlify functions path
+      const response = await fetch(`${config.apiUrl}/.netlify/functions/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,6 +63,7 @@ const RegisterPage = () => {
           email,
           password
         }),
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -75,7 +77,8 @@ const RegisterPage = () => {
         navigate("/login");
       }, 2000);
     } catch (err) {
-      setError(err.message);
+      console.error('Registration error:', err);
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
