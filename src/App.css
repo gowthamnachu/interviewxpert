@@ -250,6 +250,8 @@ body::before {
   transform-origin: left;
 }
 
+
+
 /* ==== ENHANCED ANIMATIONS ==== */
 @keyframes fadeInScale {
   0% { opacity: 0; transform: scale(0.95); }
@@ -269,39 +271,9 @@ body::before {
 
 /* Domain button styles moved to DomainSelection.css */
 
-/* ==== NOTIFICATION STYLES ==== */
-.notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 15px 25px;
-  border-radius: 4px;
-  z-index: 1000;
-  animation: slideIn 0.3s ease-out;
-}
 
-.notification.success {
-  background: rgba(46, 204, 113, 0.9);
-  color: white;
-  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
-}
 
-.notification.error {
-  background: rgba(231, 76, 60, 0.9);
-  color: white;
-  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-}
 
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
 
 /* ==== RESPONSIVE DESIGN ==== */
 @media (max-width: 768px) {
