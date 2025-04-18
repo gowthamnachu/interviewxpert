@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaSearch, FaCheckCircle } from "react-icons/fa";
+import config from '../config';
 import "./QuestionList.css";
 
 const QuestionList = () => {
@@ -15,15 +16,24 @@ const QuestionList = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/api/questions?domain=${encodeURIComponent(selectedDomain)}`);
+        const response = await axios.get(
+          `${config.apiUrl}/questions?domain=${encodeURIComponent(selectedDomain)}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
         if (response.data.length === 0) {
           setError(`No questions available for ${selectedDomain}`);
         } else {
           setQuestions(response.data);
         }
-        setLoading(false);
       } catch (err) {
-        setError("Failed to fetch questions. Please try again later.");
+        console.error('Error details:', err);
+        setError(err.response?.data?.message || 'Failed to fetch questions. Please try again later.');
+      } finally {
         setLoading(false);
       }
     };
