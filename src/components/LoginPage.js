@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
+import config from "../config"; // Add this import
 
 const LoginPage = ({ setIsLoggedIn }) => {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setError("");
 
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
+      const response = await fetch(`${config.apiUrl}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,6 +26,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
       });
 
       const data = await response.json();
+      console.log('Login response:', data); // Add logging
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
@@ -40,6 +42,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
+      console.error('Login error:', err); // Add error logging
       setError(err.message);
     }
   };
