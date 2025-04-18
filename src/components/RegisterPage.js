@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import config from '../config';
 import "./Auth.css";
 
 const RegisterPage = () => {
@@ -39,7 +40,6 @@ const RegisterPage = () => {
     setError("");
     setSuccessMessage("");
 
-    // Password validation checks
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -54,7 +54,7 @@ const RegisterPage = () => {
 
     try {
       const response = await axios.post(
-        'https://interviewxpertbackend.netlify.app/.netlify/functions/api/register',
+        `${config.apiUrl}/register`,
         {
           username,
           email,
@@ -68,24 +68,14 @@ const RegisterPage = () => {
         }
       );
 
-      console.log('Registration response:', response);
-
-      if (response.data.message) {
+      if (response.status === 201) {
         setSuccessMessage(response.data.message);
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        throw new Error('Registration failed');
+        throw new Error(response.data.error || 'Registration failed');
       }
     } catch (err) {
-      console.error('Registration error:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data
-      });
-      setError(
-        err.response?.data?.error || 
-        'Registration failed. Please try again.'
-      );
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }

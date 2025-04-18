@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { jsPDF } from "jspdf"; // jsPDF library to generate PDF
 import { useNavigate, useLocation } from "react-router-dom";
+import config from '../config';
 import "./ResumePage.css"; // Import the CSS for animations and styling
 
 const ResumePage = () => {
@@ -44,7 +45,7 @@ const ResumePage = () => {
   const fetchResume = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -187,7 +188,7 @@ const ResumePage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/resume", {
+      const response = await fetch(`${config.apiUrl}/resume`, {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
