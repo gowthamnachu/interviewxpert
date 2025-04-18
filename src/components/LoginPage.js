@@ -14,10 +14,17 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setError("");
 
     try {
-      const response = await fetch(`${config.apiUrl}/login`, {
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://interviewxpertbackend.netlify.app/.netlify/functions/api/login'
+        : `${config.apiUrl}/login`;
+
+      console.log('Attempting login with URL:', apiUrl); // Debug log
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           usernameOrEmail,
@@ -25,8 +32,15 @@ const LoginPage = ({ setIsLoggedIn }) => {
         }),
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Non-JSON response:', await response.text());
+        throw new Error('Server returned invalid response');
+      }
+
       const data = await response.json();
-      console.log('Login response:', data); // Add logging
+      console.log('Login response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
@@ -42,8 +56,8 @@ const LoginPage = ({ setIsLoggedIn }) => {
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      console.error('Login error:', err); // Add error logging
-      setError(err.message);
+      console.error('Login error:', err);
+      setError(err.message || 'Failed to connect to the server. Please try again.');
     }
   };
 
