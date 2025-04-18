@@ -263,31 +263,48 @@ app.delete("/api/resume", verifyToken, async (req, res) => {
 });
 
 // Certificate routes
-app.post('/api/certificates', verifyToken, async (req, res) => {
+app.post('/api/certificates', async (req, res) => {
   try {
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
     }
 
-    console.log('Received certificate data:', req.body);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { certificateId, domain, score, userName, fullName } = req.body;
 
-    const certificateData = {
-      ...req.body,
-      userId: req.user.userId,
-      createdAt: new Date()
-    };
+    // Validate required fields
+    if (!certificateId || !domain || !score || !userName) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-    const certificate = new CertificateModel(certificateData);
-    await certificate.save();
-    
-    console.log('Certificate saved successfully:', certificate);
-    res.status(201).json(certificate);
-  } catch (error) {
-    console.error('Error creating certificate:', error);
-    res.status(500).json({ 
-      error: 'Failed to create certificate', 
-      details: error.message 
+    // Check for existing certificate
+    const existingCert = await CertificateModel.findOne({ certificateId });
+    if (existingCert) {
+      return res.status(409).json({ error: "Certificate ID already exists" });
+    }
+
+    // Create new certificate
+    const newCertificate = new CertificateModel({
+      certificateId,
+      userId: decoded.userId,
+      userName,
+      fullName,
+      domain,
+      score,
+      grade: calculateGrade(score),
+      issueDate: new Date(),
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      badgeLevel: calculateBadgeLevel(score),
+      verificationUrl: `${req.protocol}://${req.get('host')}/verify-certificate/${certificateId}`
     });
+
+    await newCertificate.save();
+    res.status(201).json(newCertificate);
+
+  } catch (error) {
+    console.error("Certificate save error:", error);
+    res.status(500).json({ error: "Failed to save certificate" });
   }
 });
 

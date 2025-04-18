@@ -1,6 +1,6 @@
 const getApiUrl = () => {
   if (process.env.NODE_ENV === 'production') {
-    return 'https://interviewxpertbackend.netlify.app/.netlify/functions/api';
+    return '/.netlify/functions/api';  // Remove full URL to use relative path
   }
   return 'http://localhost:3001/api';
 };

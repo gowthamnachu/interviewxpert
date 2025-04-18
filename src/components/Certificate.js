@@ -4,14 +4,12 @@ import axios from 'axios';
 import QRCode from 'qrcode';
 import './Certificate.css';
 import { FaDownload, FaSpinner, FaSave, FaCheck } from 'react-icons/fa';
-import { config } from '../config';  // Add this import
 
 const Certificate = ({ userName, domain, score, date }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savingError, setSavingError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const downloadSteps = [
     { id: 1, text: 'Generating Certificate...', icon: <FaSpinner className="spin" /> },
     { id: 2, text: 'Saving to Server...', icon: <FaSave /> },
@@ -27,49 +25,6 @@ const Certificate = ({ userName, domain, score, date }) => {
   };
 
   const generateCertificate = async () => {
-    setError(null);
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
-      const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      console.log('Making request to:', `${config.apiUrl}/certificates`);
-      const response = await axios.post(
-        `${config.apiUrl}/certificates`,
-        {
-          certificateId,
-          userName,
-          fullName: userName,
-          domain,
-          score,
-          badgeLevel: calculateBadgeLevel(score),
-          issueDate: new Date(),
-          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      console.log('Certificate saved:', response.data);
-      await generatePDF(certificateId);
-    } catch (error) {
-      console.error('Certificate Error:', error.response?.data || error.message);
-      setError(error.response?.data?.error || 'Failed to save certificate. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generatePDF = async (certificateId) => {
     setLoading(true);
     setError(null);
     setSaving(false);
@@ -77,48 +32,39 @@ const Certificate = ({ userName, domain, score, date }) => {
     setCurrentStep(1);
     
     try {
-      await saveCertificate(); // Add this call to save the certificate
-
       // Step 1: Generate Certificate
       setCurrentStep(1);
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('Authentication required');
-        return;
+        throw new Error('Authentication required. Please login again.');
       }
 
-      // eslint-disable-next-line no-unused-vars
       const decoded = JSON.parse(atob(token.split('.')[1]));
+      const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
       // Step 2: Save to Server
       setCurrentStep(2);
-      try {
-        const response = await axios.post(`${config.apiUrl}/certificates`, {
-          certificateId,
-          userName,
-          fullName: userName,
-          domain,
-          score,
-          badgeLevel: calculateBadgeLevel(score),
-          issueDate: new Date(),
-          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.data) {
-          throw new Error('No data received from server');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await axios.post('http://localhost:3001/api/certificates', {
+        certificateId,
+        userId: decoded.userId,
+        userName,
+        fullName: userName,
+        domain,
+        score,
+        badgeLevel: calculateBadgeLevel(score),
+        issueDate: new Date(),
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-        console.log('Certificate saved successfully:', response.data);
-      } catch (error) {
-        console.error('Error saving certificate:', error.response?.data || error.message);
-        setError('Failed to save certificate. Please try again.');
-        setCurrentStep(0);
-        return;
+      });
+
+      if (!response.data) {
+        throw new Error('Failed to save certificate data');
       }
 
       // Step 3: Prepare Download
@@ -255,61 +201,10 @@ const Certificate = ({ userName, domain, score, date }) => {
     }
   };
 
-  const saveCertificate = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      const certificateId = `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Step 2: Save to Server
-      setCurrentStep(2);
-      const response = await axios.post(
-        `${config.apiUrl}/certificates`, 
-        {
-          certificateId,
-          userName,
-          fullName: userName,
-          domain,
-          score,
-          badgeLevel: calculateBadgeLevel(score),
-          issueDate: new Date(),
-          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-        }, 
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data) {
-        console.log('Certificate saved successfully:', response.data);
-        setCurrentStep(3);
-      } else {
-        throw new Error('No data received from server');
-      }
-    } catch (error) {
-      console.error('Error saving certificate:', error);
-      setError(error.response?.data?.error || error.message || 'Failed to save certificate');
-      setCurrentStep(0);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="certificate-container">
       {error && <div className="error-message">{error}</div>}
       {savingError && <div className="error-message">Server Error: {savingError}</div>}
-      {isLoading && <div className="loading">Saving certificate...</div>}
       
       <button 
         className="download-certificate-btn" 
@@ -324,20 +219,12 @@ const Certificate = ({ userName, domain, score, date }) => {
           {downloadSteps.map((step) => (
             <div
               key={step.id}
-              className={`step ${currentStep >= step.id ? 'active' : ''} ${
-                currentStep > step.id ? 'completed' : ''
-              }`}
+              className={`step ${currentStep >= step.id ? 'active' : ''} 
+                         ${currentStep > step.id ? 'completed' : ''}`}
             >
-              <div className="step-icon">
-                {currentStep > step.id ? (
-                  <FaCheck />
-                ) : currentStep === step.id ? (
-                  <FaSpinner className="spinner" />
-                ) : (
-                  step.icon
-                )}
-              </div>
+              <div className="step-icon">{step.icon}</div>
               <div className="step-text">{step.text}</div>
+              <div className="step-loader"></div>
             </div>
           ))}
         </div>

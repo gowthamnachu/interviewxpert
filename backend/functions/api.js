@@ -10,14 +10,8 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://interviewxpert.vercel.app',
-    'https://interviewxpert.netlify.app'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: 'https://interviewxpert.netlify.app',
+  credentials: true
 }));
 
 // Ensure MongoDB connection
@@ -100,10 +94,13 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
   }
 });
 
-// Enhanced login endpoint
 app.post('/.netlify/functions/api/login', async (req, res) => {
   try {
-    console.log('Login request received');
+    console.log('Login request received:', {
+      body: req.body,
+      headers: req.headers
+    });
+
     const { usernameOrEmail, password } = req.body;
 
     if (!usernameOrEmail || !password) {
@@ -119,6 +116,8 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
       ]
     });
 
+    console.log('User found:', user ? 'Yes' : 'No');
+
     if (!user) {
       return res.status(401).json({ 
         error: "Invalid credentials" 
@@ -126,6 +125,8 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isMatch ? 'Yes' : 'No');
+
     if (!isMatch) {
       return res.status(401).json({ 
         error: "Invalid credentials" 
@@ -133,12 +134,23 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, username: user.username },
+      { 
+        userId: user._id,
+        username: user.username,
+        email: user.email 
+      },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.json({ token, username: user.username });
+    res.json({
+      token,
+      user: {
+        username: user.username,
+        email: user.email,
+        registrationDate: user.registrationDate
+      }
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ 
