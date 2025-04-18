@@ -47,40 +47,43 @@ const Certificate = ({ userName, domain, score, date }) => {
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      let retryCount = 0;
-      let response;
-      while (retryCount < 3) {
+      const makeRequest = async (attempt) => {
         try {
-          response = await axios.post(`${config.apiUrl}/certificates`, {
-        certificateId,
-        userId: decoded.userId,
-        userName,
-        fullName: userName,
-        domain,
-        score,
-        badgeLevel: calculateBadgeLevel(score),
-        issueDate: new Date(),
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        validateStatus: function (status) {
-          return status < 500;
-        },
-        timeout: 30000
-      });
-      break; // Success - exit retry loop
+          return await axios.post(`${config.apiUrl}/certificates`, {
+            certificateId,
+            userId: decoded.userId,
+            userName,
+            fullName: userName,
+            domain,
+            score,
+            badgeLevel: calculateBadgeLevel(score),
+            issueDate: new Date(),
+            expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+          }, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            validateStatus: function (status) {
+              return status < 500;
+            },
+            timeout: 30000
+          });
         } catch (err) {
-          retryCount++;
-          if (retryCount === 3) throw err; // Throw if all retries failed
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          if (attempt === 2) throw err;
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          return null;
         }
+      };
+
+      let response;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        response = await makeRequest(attempt);
+        if (response) break;
       }
 
-      if (!response.data) {
+      if (!response?.data) {
         throw new Error('Failed to save certificate data');
       }
 
