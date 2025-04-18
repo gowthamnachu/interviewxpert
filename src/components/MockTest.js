@@ -91,7 +91,15 @@ const MockTest = () => {
   const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:3001/api/questions?domain=${selectedDomain}`);
+      const token = localStorage.getItem('token');
+      const response = await axios({
+        method: 'get',
+        url: `${config.apiUrl}/questions?domain=${encodeURIComponent(selectedDomain)}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const mockQuestions = response.data.filter(q => q.isMockQuestion);
       setQuestions(mockQuestions);
       setAnalytics(prev => ({...prev, timePerQuestion: new Array(mockQuestions.length).fill(0)}));
