@@ -155,20 +155,31 @@ app.post("/api/login", async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ error: "Login failed" });
   }
 });
 
-// Resume endpoints
-app.post("/api/resume", async (req, res) => {
+// Add middleware for token verification
+const verifyToken = (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "No token provided" });
     }
-
     const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+// Resume endpoints
+app.post("/api/resume", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
     const resumeData = { ...req.body, userId };
     
@@ -191,15 +202,9 @@ app.post("/api/resume", async (req, res) => {
   }
 });
 
-app.get("/api/resume", async (req, res) => {
+app.get("/api/resume", verifyToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const resume = await Resume.findOne({ userId: decoded.userId });
+    const resume = await Resume.findOne({ userId: req.user.userId });
     
     if (!resume) {
       return res.status(404).json({ error: "Resume not found" });
@@ -213,15 +218,9 @@ app.get("/api/resume", async (req, res) => {
   }
 });
 
-app.put("/api/resume", async (req, res) => {
+app.put("/api/resume", verifyToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
+    const userId = req.user.userId;
 
     const updatedResume = await Resume.findOneAndUpdate(
       { userId },
@@ -239,15 +238,9 @@ app.put("/api/resume", async (req, res) => {
   }
 });
 
-app.delete("/api/resume", async (req, res) => {
+app.delete("/api/resume", verifyToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "No token provided" });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const result = await Resume.findOneAndDelete({ userId: decoded.userId });
+    const result = await Resume.findOneAndDelete({ userId: req.user.userId });
     
     if (!result) {
       return res.status(404).json({ error: "Resume not found" });
