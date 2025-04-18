@@ -4,6 +4,7 @@ import axios from "axios";
 import { FaClock, FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
 import Certificate from "./Certificate";
 import "./MockTest.css";
+import { config } from "../config"; // Add this import statement
 
 const MockTest = () => {
   const location = useLocation();
