@@ -77,11 +77,11 @@ const verifyToken = async (req, res, next) => {
 };
 
 // Routes
-app.get('/.netlify/functions/api/questions', async (req, res) => {
+app.get('/.netlify/functions/api/questions', verifyToken, async (req, res) => {
   try {
     console.log('Received request for questions:', req.query);
     const { domain } = req.query;
-    const query = domain ? { domain } : {};
+    const query = domain ? { domain, isMockQuestion: true } : { isMockQuestion: true };
     const questions = await Question.find(query);
     console.log(`Found ${questions.length} questions`);
     res.json(questions);
