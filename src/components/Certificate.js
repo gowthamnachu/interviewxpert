@@ -37,35 +37,43 @@ const Certificate = ({ userName, domain, score, date }) => {
       setCurrentStep(1);
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('Authentication required. Please login again.');
+        setError('Authentication required');
+        return;
       }
 
+      // eslint-disable-next-line no-unused-vars
       const decoded = JSON.parse(atob(token.split('.')[1]));
       const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
       // Step 2: Save to Server
       setCurrentStep(2);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const response = await axios.post(`${config.apiUrl}/certificates`, {
-        certificateId,
-        userId: decoded.userId,
-        userName,
-        fullName: userName,
-        domain,
-        score,
-        badgeLevel: calculateBadgeLevel(score),
-        issueDate: new Date(),
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        const response = await axios.post(`${config.apiUrl}/certificates`, {
+          certificateId,
+          userName,
+          fullName: userName,
+          domain,
+          score,
+          badgeLevel: calculateBadgeLevel(score),
+          issueDate: new Date(),
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          grade: score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : 'D'
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (!response.data) {
-        throw new Error('Failed to save certificate data');
+        if (!response.data) {
+          throw new Error('No data received from server');
+        }
+        console.log('Certificate saved successfully:', response.data);
+      } catch (error) {
+        console.error('Error saving certificate:', error.response?.data || error.message);
+        setError('Failed to save certificate. Please try again.');
+        setCurrentStep(0);
+        return;
       }
 
       // Step 3: Prepare Download
