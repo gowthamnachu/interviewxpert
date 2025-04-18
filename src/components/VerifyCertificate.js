@@ -39,7 +39,7 @@ const VerifyCertificate = () => {
       // Step 2: Certificate verification
       setVerificationStep(2);
       const response = await axios.get(
-        `${config.apiUrl}/.netlify/functions/api/certificates/verify/${encodeURIComponent(certificateId.trim())}`,
+        `${config.apiUrl}/certificates/verify/${encodeURIComponent(certificateId.trim())}`,
         {
           headers: {
             'Content-Type': 'application/json',

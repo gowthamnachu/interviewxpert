@@ -56,7 +56,33 @@ app.use(async (req, res, next) => {
 const Question = require('../../backend/models/Question');
 const User = require('../../backend/models/User');
 const Resume = require('../../backend/models/Resume');
-const Certificate = require('../../backend/models/Certificate');
+
+// Certificate Schema
+const certificateSchema = new mongoose.Schema({
+  certificateId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  userName: String,
+  fullName: String,
+  domain: String,
+  score: Number,
+  grade: String,
+  issueDate: {
+    type: Date,
+    default: Date.now
+  },
+  expiryDate: Date,
+  badgeLevel: String
+});
+
+const Certificate = mongoose.model('Certificate', certificateSchema);
 
 // Add JWT verification middleware
 const verifyToken = (req, res, next) => {
@@ -190,6 +216,29 @@ app.get('/.netlify/functions/api/certificates', verifyToken, async (req, res) =>
     res.status(500).json({ 
       error: "Failed to fetch certificates",
       details: error.message
+    });
+  }
+});
+
+app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
+  try {
+    console.log('Verifying certificate:', req.params.id);
+    
+    const certificate = await Certificate.findOne({ 
+      certificateId: req.params.id 
+    });
+    
+    if (!certificate) {
+      console.log('Certificate not found:', req.params.id);
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    res.json(certificate);
+  } catch (error) {
+    console.error('Certificate verification error:', error);
+    res.status(500).json({ 
+      error: "Failed to verify certificate",
+      details: error.message 
     });
   }
 });
