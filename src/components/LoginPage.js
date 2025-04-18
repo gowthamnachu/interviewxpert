@@ -13,7 +13,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
     setError("");
 
     const API_URL = process.env.NODE_ENV === 'production' 
-      ? 'https://interviewxpert.netlify.app/.netlify/functions/api/login'
+      ? 'https://interviewxpert.netlify.app/api/login'
       : 'http://localhost:3001/api/login';
 
     try {
@@ -21,12 +21,18 @@ const LoginPage = ({ setIsLoggedIn }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           usernameOrEmail,
           password
         }),
       });
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server error: Expected JSON response but got HTML. Please try again later.");
+      }
 
       const data = await response.json();
 
@@ -44,7 +50,8 @@ const LoginPage = ({ setIsLoggedIn }) => {
       setIsLoggedIn(true);
       navigate("/select-domain");
     } catch (err) {
-      setError(err.message);
+      console.error('Login error:', err);
+      setError(err.message || 'Failed to connect to the server. Please try again later.');
     }
   };
 
