@@ -43,10 +43,15 @@ const Certificate = ({ userName, domain, score, date }) => {
       const decoded = JSON.parse(atob(token.split('.')[1]));
       const certificateId = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       
-      // Step 2: Save to Server
+      // Step 2: Save to Server with retry mechanism
       setCurrentStep(2);
       await new Promise(resolve => setTimeout(resolve, 800));
-      const response = await axios.post(`${config.apiUrl}/certificates`, {
+      
+      let retryCount = 0;
+      let response;
+      while (retryCount < 3) {
+        try {
+          response = await axios.post(`${config.apiUrl}/certificates`, {
         certificateId,
         userId: decoded.userId,
         userName,
@@ -67,6 +72,13 @@ const Certificate = ({ userName, domain, score, date }) => {
         },
         timeout: 30000
       });
+      break; // Success - exit retry loop
+        } catch (err) {
+          retryCount++;
+          if (retryCount === 3) throw err; // Throw if all retries failed
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+        }
+      }
 
       if (!response.data) {
         throw new Error('Failed to save certificate data');
@@ -198,8 +210,12 @@ const Certificate = ({ userName, domain, score, date }) => {
         setError('Authentication failed. Please login again.');
       } else if (error.response?.status === 500) {
         setError('Server error. Please try again later.');
+      } else if (error.response?.status === 503 || error.response?.status === 429) {
+        setError('Server is temporarily unavailable. Please try again in a few minutes.');
+      } else if (error.code === 'ECONNABORTED') {
+        setError('Request timed out. Please check your connection and try again.');
       } else {
-        setError(`Failed to generate certificate: ${errorMessage}`);
+        setError(`Failed to generate certificate: ${errorMessage}. Please try again.`);
       }
     } finally {
       setLoading(false);
