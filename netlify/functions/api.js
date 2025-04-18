@@ -22,8 +22,13 @@ mongoose.connect(process.env.MONGO_URI, {
 // Parse JSON bodies
 app.use(express.json());
 
-// Questions route
-app.get('/.netlify/functions/api/questions', async (req, res) => {
+// Base route
+app.get('/', async (req, res) => {
+  res.json({ message: "API is working" });
+});
+
+// Questions route - update path
+app.get('/questions', async (req, res) => {
   try {
     const { domain } = req.query;
     const query = domain ? { domain } : {};
@@ -34,9 +39,10 @@ app.get('/.netlify/functions/api/questions', async (req, res) => {
   }
 });
 
-// Add other routes similarly
-app.use('/.netlify/functions/api/*', (req, res) => {
-  res.status(404).json({ error: "Not found" });
+// Add error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 // Export handler
