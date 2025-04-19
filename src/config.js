@@ -1,22 +1,13 @@
 const getApiUrl = () => {
   // Check if running on Netlify
-  const isNetlify = Boolean(process.env.REACT_APP_NETLIFY || window.location.hostname.includes('netlify.app'));
+  const isNetlify = window.location.hostname.includes('netlify.app');
   
-  // Check if running in development
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
-  if (isDevelopment) {
+  if (process.env.NODE_ENV === 'development') {
     return 'http://localhost:3001/api';
   }
 
-  // For production/Netlify
-  if (isNetlify) {
-    // Use relative path for Netlify functions
-    return '/.netlify/functions/api';
-  }
-
-  // Fallback for other production environments
-  return `${window.location.origin}/api`;
+  // For Netlify deployment
+  return '/.netlify/functions/api';
 };
 
 export const config = {
@@ -30,10 +21,5 @@ export const config = {
     certificates: '/certificates',
     certificatesUser: '/certificates/user',
     verify: '/certificates/verify'
-  },
-  timeouts: {
-    request: 30000, // 30 seconds
-    session: 24 * 60 * 60 * 1000 // 24 hours
-  },
-  retryAttempts: 3
+  }
 };

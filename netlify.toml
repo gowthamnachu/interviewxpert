@@ -4,9 +4,15 @@
   functions = "netlify/functions"
 
 [functions]
-  external_node_modules = ["express", "mongoose"]
+  external_node_modules = ["express", "mongoose", "bcryptjs", "jsonwebtoken", "cors"]
   included_files = ["backend/models/**"]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/.netlify/functions/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/api/*"

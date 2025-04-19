@@ -7,20 +7,28 @@ const apiService = {
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` })
     };
 
     const defaultOptions = {
       headers: defaultHeaders,
-      timeout: config.timeouts.request,
+      credentials: 'include',
       ...options
     };
 
     let attempts = 0;
-    while (attempts < config.retryAttempts) {
+    while (attempts < (config.retryAttempts || 3)) {
       try {
         const response = await fetch(url, defaultOptions);
         
+        // Check content type to handle HTML responses
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          console.error('Received HTML instead of JSON');
+          throw new Error('Invalid server response format');
+        }
+
         // Handle 401 Unauthorized
         if (response.status === 401) {
           localStorage.clear();
@@ -28,24 +36,41 @@ const apiService = {
           throw new Error('Session expired. Please login again.');
         }
 
-        // Handle other error responses
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        // Try to parse response as JSON
+        let errorData;
+        let responseData;
+        const text = await response.text();
+        
+        try {
+          responseData = text ? JSON.parse(text) : {};
+        } catch (e) {
+          console.error('Failed to parse response:', text);
+          throw new Error('Invalid JSON response from server');
         }
 
-        return await response.json();
+        // Handle error responses
+        if (!response.ok) {
+          throw new Error(responseData.error || `Request failed with status ${response.status}`);
+        }
+
+        return responseData;
       } catch (error) {
         attempts++;
-        
+        console.error(`API request failed (attempt ${attempts}):`, error);
+
         // Don't retry on authentication errors
         if (error.message.includes('Session expired')) {
           throw error;
         }
 
+        // Don't retry on invalid JSON/HTML responses
+        if (error.message.includes('Invalid JSON') || error.message.includes('Invalid server response format')) {
+          throw new Error('Server returned an invalid response. Please try again later.');
+        }
+
         // Only retry on network errors or 5xx server errors
-        if (attempts === config.retryAttempts || 
-            (!error.message.includes('Failed to fetch') && error.message.includes('status: 5'))) {
+        if (attempts === (config.retryAttempts || 3) || 
+            (!error.message.includes('Failed to fetch') && !error.message.includes('status: 5'))) {
           throw error;
         }
 
