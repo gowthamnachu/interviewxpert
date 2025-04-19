@@ -51,12 +51,12 @@ const RegisterPage = () => {
     }
 
     setIsLoading(true);
-    console.log('Attempting registration with URL:', `${config.apiUrl}/.netlify/functions/api/register`);
+    console.log('Config API URL:', config.apiUrl); // Debug log
 
     try {
       const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/.netlify/functions/api/register`,
+        url: `${config.apiUrl}/api/register`,
         data: {
           username,
           email,
@@ -64,7 +64,6 @@ const RegisterPage = () => {
         },
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         timeout: 30000
       });
@@ -76,11 +75,13 @@ const RegisterPage = () => {
         setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
-      console.error('Registration error details:', {
-        error: err,
-        response: err.response,
-        config: err.config
+      console.error('Registration error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        url: err.config?.url
       });
+      
       const errorMessage = err.response?.data?.error || 
                           err.response?.statusText ||
                           err.message ||

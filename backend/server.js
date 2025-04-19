@@ -16,22 +16,9 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Configure CORS with allowed origins
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://interviewxpert.vercel.app',
-  'https://interviewxpert.netlify.app',
-  'https://interviewxpertbackend.netlify.app'
-];
-
+// Enable CORS for all routes
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true
 }));
 
@@ -104,8 +91,9 @@ app.get("/api/questions", async (req, res) => {
 });
 
 // Register route
-app.post("/api/register", async (req, res) => {
+app.post(["/api/register", "/.netlify/functions/api/register"], async (req, res) => {
   try {
+    console.log('Registration request received:', req.body); // Debug log
     const { username, email, password } = req.body;
     
     if (!username || !email || !password) {
