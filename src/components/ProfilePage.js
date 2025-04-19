@@ -32,9 +32,17 @@ const ProfilePage = () => {
       const response = await fetch(`${config.apiUrl}/certificates/user`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
       });
+
+      // Handle HTML responses
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        throw new Error('Invalid server response format');
+      }
 
       if (response.status === 401) {
         localStorage.clear();
@@ -42,70 +50,30 @@ const ProfilePage = () => {
         return;
       }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Server responded with ${response.status}`);
+      // Try to parse the response text
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : [];
+      } catch (e) {
+        console.error('Failed to parse response:', text);
+        throw new Error('Invalid response format from server');
       }
 
-      const data = await response.json();
-      setCertificates(Array.isArray(data) ? data.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate)) : []);
+      if (!response.ok) {
+        throw new Error(data.error || `Server responded with ${response.status}`);
+      }
+
+      setCertificates(Array.isArray(data) ? 
+        data.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate)) : 
+        []
+      );
     } catch (error) {
       console.error('Certificate fetch error:', error);
       setError(`Failed to load certificates: ${error.message}`);
       setCertificates([]);
     } finally {
       setLoading(false);
-    }
-  }, [navigate]);
-
-  const fetchResume = useCallback(async () => {
-    try {
-      setLoading(true);
-      setLoadingState('Fetching resume data...');
-      setError(null);
-      
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error('Please log in to access your resume');
-      }
-
-      const response = await fetch(`${config.apiUrl}/resume`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.status === 401) {
-        localStorage.clear();
-        navigate("/login");
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch resume (${response.status})`);
-      }
-
-      const data = await response.json();
-      setLoadingState('Processing resume information...');
-      
-      if (data && Object.keys(data).length > 0) {
-        setResume(data);
-        setLoadingState('Resume loaded successfully!');
-      } else {
-        setResume(null);
-        setLoadingState('No resume found');
-      }
-    } catch (error) {
-      console.error("Error fetching resume:", error);
-      setError(error.message);
-      setResume(null);
-    } finally {
-      setTimeout(() => {
-        setLoading(false);
-        setLoadingState('');
-      }, 500);
     }
   }, [navigate]);
 
@@ -128,7 +96,44 @@ const ProfilePage = () => {
 
     fetchResume();
     fetchCertificates();
-  }, [navigate, fetchResume, fetchCertificates]);
+  }, [navigate, fetchCertificates]);
+
+  const fetchResume = async () => {
+    try {
+      setLoading(true);
+      setLoadingState('Fetching resume data...');
+      setError(null);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${config.apiUrl}/resume`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch resume');
+      }
+
+      const data = await response.json();
+      setLoadingState('Processing resume information...');
+      console.log("Resume data received:", !!data.pdfData); // Debug log
+      if (data && data.pdfData) {
+        setResume(data);
+        setLoadingState('Resume loaded successfully!');
+      } else {
+        setError("No PDF data found in resume");
+      }
+    } catch (error) {
+      console.error("Error fetching resume:", error);
+      setError(error.message);
+    } finally {
+      setTimeout(() => {
+        setLoading(false);
+        setLoadingState('');
+      }, 500);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
@@ -269,65 +274,32 @@ const ProfilePage = () => {
   );
 
   const renderCertificates = () => (
-    <div className="profile-section certificates-section">
-      <div className="section-header">
-        <h3>Professional Certifications</h3>
-        <p className="section-description">Your earned certificates and achievements</p>
-      </div>
-      
-      <div className="certificates-grid">
-        {error ? (
-          <div className="error-message fade-in">{error}</div>
-        ) : loading ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading your certificates...</p>
-          </div>
-        ) : certificates.length > 0 ? (
-          certificates.map((cert) => (
-            <div key={cert._id || cert.certificateId} className="certificate-card fade-in">
-              <FaCertificate className="certificate-icon" />
-              <div className="certificate-info">
-                <h4>{cert.domain}</h4>
-                <div className="certificate-details">
-                  <p><strong>Score:</strong> {cert.score}% - {cert.grade}</p>
-                  <p><strong>Badge Level:</strong> {cert.badgeLevel}</p>
-                  <p><strong>Issue Date:</strong> {new Date(cert.issueDate).toLocaleDateString()}</p>
-                  <p><strong>Valid Until:</strong> {new Date(cert.expiryDate).toLocaleDateString()}</p>
-                  <p className="certificate-id">ID: {cert.certificateId}</p>
-                </div>
-                <div className="certificate-actions">
-                  <button 
-                    className="verify-btn"
-                    onClick={() => window.open(`/verify-certificate/${cert.certificateId}`, '_blank')}
-                  >
-                    <FaCertificate /> Verify
-                  </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => handleDeleteCertificate(cert._id)}
-                    title="Delete Certificate"
-                  >
-                    <FaTrash /> Delete
-                  </button>
-                </div>
-              </div>
+    <div className="certificates-grid">
+      {error ? (
+        <div className="error-message">{error}</div>
+      ) : loading ? (
+        <div className="loading-spinner">Loading certificates...</div>
+      ) : certificates.length > 0 ? (
+        certificates.map((cert) => (
+          <div key={cert._id || cert.certificateId} className="certificate-card">
+            <FaCertificate className="certificate-icon" />
+            <div className="certificate-info">
+              <h4>{cert.domain}</h4>
+              <p>Score: {cert.score}%</p>
+              <p>Date: {new Date(cert.date).toLocaleDateString()}</p>
+              <p className="certificate-id">ID: {cert.certificateId}</p>
+              <button 
+                className="delete-btn"
+                onClick={() => handleDeleteCertificate(cert._id)}
+              >
+                <FaTrash /> Delete
+              </button>
             </div>
-          ))
-        ) : (
-          <div className="empty-state fade-in">
-            <FaCertificate className="empty-icon" />
-            <h4>No Certificates Yet</h4>
-            <p>Complete mock tests to earn your professional certificates</p>
-            <button 
-              className="create-resume-btn"
-              onClick={() => navigate('/mock-test')}
-            >
-              Take a Mock Test
-            </button>
           </div>
-        )}
-      </div>
+        ))
+      ) : (
+        <p>No certificates found</p>
+      )}
     </div>
   );
 

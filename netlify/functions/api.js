@@ -6,75 +6,51 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-let cachedDb = null;
 
-// Always set JSON content type
-app.use((req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
-
-// CORS configuration for Netlify
+// Middleware
+app.use(express.json());
 app.use(cors({
-  origin: function(origin, callback) {
-    callback(null, true); // Allow all origins in production
-  },
+  origin: true,
   credentials: true
 }));
 
-// Parse JSON bodies
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Database connection with connection pooling
+let cachedDb = null;
 
-// Error handling middleware - must be before routes
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ error: 'Invalid JSON format' });
-  }
-  next(err);
-});
-
-// Database connection with better error handling
-async function connectToDatabase() {
+const connectToDatabase = async () => {
   if (cachedDb && mongoose.connection.readyState === 1) {
-    return cachedDb;
+    console.log('Using cached database connection');
+    return;
   }
 
   try {
-    const connection = await mongoose.connect(process.env.MONGO_URI, {
+    console.log('Creating new database connection');
+    await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
-      keepAlive: true,
-      retryWrites: true,
-      w: 'majority'
+      maxPoolSize: 10
     });
-    
-    cachedDb = connection;
-    return cachedDb;
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw new Error('Database connection failed');
-  }
-}
 
-// Wrap route handlers with try-catch and proper JSON responses
-const wrapAsync = (fn) => {
-  return async (req, res, next) => {
-    try {
-      await fn(req, res, next);
-    } catch (error) {
-      console.error('Route error:', error);
-      res.status(500).json({
-        error: process.env.NODE_ENV === 'development' 
-          ? error.message 
-          : 'Internal server error'
-      });
-    }
-  };
+    cachedDb = mongoose.connection;
+    console.log('MongoDB Connected Successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
 };
+
+// Ensure database connection before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection middleware error:', error);
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
 
 // Import models
 const Question = require('../../backend/models/Question');
@@ -103,7 +79,7 @@ const certificateSchema = new mongoose.Schema({
     default: Date.now
   },
   expiryDate: Date,
-    badgeLevel: String
+  badgeLevel: String
 });
 
 const Certificate = mongoose.model('Certificate', certificateSchema);
@@ -127,141 +103,240 @@ const verifyToken = (req, res, next) => {
 };
 
 // Your existing routes go here
-app.post('/.netlify/functions/api/register', wrapAsync(async (req, res) => {
-  const { username, email, password } = req.body;
+app.post('/.netlify/functions/api/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
 
-  // Validate required fields
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: "All fields are required" });
+    // Validate required fields
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Validate password strength
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: "Password must be at least 8 characters long and include a number and special character"
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: existingUser.username === username ? "Username already taken" : "Email already registered" 
+      });
+    }
+
+    // Create new user
+    const user = new User({ username, email, password });
+    await user.save();
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: error.message || "Registration failed" });
   }
+});
 
-  // Validate password strength
-  const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-  if (!passwordRegex.test(password)) {
-    return res.status(400).json({
-      error: "Password must be at least 8 characters long and include a number and special character"
-    });
+app.get('/.netlify/functions/api/questions', async (req, res) => {
+  try {
+    const { domain } = req.query;
+    const query = domain ? { domain } : {};
+    const questions = await Question.find(query);
+    res.json(questions);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch questions" });
   }
-
-  // Check if user already exists
-  const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-  if (existingUser) {
-    return res.status(400).json({ 
-      error: existingUser.username === username ? "Username already taken" : "Email already registered" 
-    });
-  }
-
-  // Create new user
-  const user = new User({ username, email, password });
-  await user.save();
-
-  res.status(201).json({ message: "User registered successfully" });
-}));
-
-app.get('/.netlify/functions/api/questions', wrapAsync(async (req, res) => {
-  const { domain } = req.query;
-  const query = domain ? { domain } : {};
-  const questions = await Question.find(query);
-  res.json(questions);
-}));
+});
 
 // Login route
-app.post('/.netlify/functions/api/login', wrapAsync(async (req, res) => {
-  const { usernameOrEmail, password } = req.body;
+app.post('/.netlify/functions/api/login', async (req, res) => {
+  try {
+    const { usernameOrEmail, password } = req.body;
 
-  // Find user by username or email
-  const user = await User.findOne({
-    $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }]
-  });
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }]
+    });
 
-  if (!user) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  // Compare passwords
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  // Create JWT token
-  const token = jwt.sign(
-    { 
-      userId: user._id, 
-      username: user.username, 
-      email: user.email 
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "24h" }
-  );
-
-  res.json({
-    token,
-    user: {
-      username: user.username,
-      email: user.email,
-      registrationDate: user.registrationDate
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
     }
-  });
-}));
+
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { 
+        userId: user._id, 
+        username: user.username, 
+        email: user.email 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.json({
+      token,
+      user: {
+        username: user.username,
+        email: user.email,
+        registrationDate: user.registrationDate
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
 
 // Protected routes
-app.get('/.netlify/functions/api/resume', verifyToken, wrapAsync(async (req, res) => {
-  const resume = await Resume.findOne({ userId: req.user.userId });
-  res.json(resume || {});
-}));
-
-app.post('/.netlify/functions/api/certificates', verifyToken, wrapAsync(async (req, res) => {
-  const { certificateId, domain, score, userName, fullName } = req.body;
-
-  // Validate required fields
-  if (!certificateId || !domain || !score || !userName) {
-    return res.status(400).json({ error: "Missing required fields" });
+app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ userId: req.user.userId });
+    res.json(resume || {});
+  } catch (error) {
+    console.error('Resume fetch error:', error);
+    res.status(500).json({ error: "Failed to fetch resume" });
   }
+});
 
-  // Check for existing certificate
-  const existingCert = await Certificate.findOne({ certificateId });
-  if (existingCert) {
-    return res.status(409).json({ error: "Certificate ID already exists" });
+app.post('/.netlify/functions/api/certificates', verifyToken, async (req, res) => {
+  try {
+    const { certificateId, domain, score, userName, fullName } = req.body;
+
+    // Validate required fields
+    if (!certificateId || !domain || !score || !userName) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Check for existing certificate
+    const existingCert = await Certificate.findOne({ certificateId });
+    if (existingCert) {
+      return res.status(409).json({ error: "Certificate ID already exists" });
+    }
+
+    // Create new certificate
+    const newCertificate = new Certificate({
+      certificateId,
+      userId: req.user.userId,
+      userName,
+      fullName,
+      domain,
+      score,
+      grade: calculateGrade(score),
+      issueDate: new Date(),
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      badgeLevel: calculateBadgeLevel(score)
+    });
+
+    await newCertificate.save();
+    res.status(201).json(newCertificate);
+  } catch (error) {
+    console.error('Certificate creation error:', error);
+    res.status(500).json({ error: "Failed to create certificate" });
   }
+});
 
-  // Create new certificate
-  const newCertificate = new Certificate({
-    certificateId,
-    userId: req.user.userId,
-    userName,
-    fullName,
-    domain,
-    score,
-    grade: calculateGrade(score),
-    issueDate: new Date(),
-    expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-    badgeLevel: calculateBadgeLevel(score)
-  });
-
-  await newCertificate.save();
-  res.status(201).json(newCertificate);
-}));
-
-app.get('/.netlify/functions/api/certificates', verifyToken, wrapAsync(async (req, res) => {
-  const certificates = await Certificate.find({ userId: req.user.userId });
-  res.json(certificates);
-}));
-
-app.get('/.netlify/functions/api/certificates/verify/:id', wrapAsync(async (req, res) => {
-  console.log('Verifying certificate:', req.params.id);
-  
-  const certificate = await Certificate.findOne({ 
-    certificateId: req.params.id 
-  });
-  
-  if (!certificate) {
-    console.log('Certificate not found:', req.params.id);
-    return res.status(404).json({ error: "Certificate not found" });
+app.get('/.netlify/functions/api/certificates', verifyToken, async (req, res) => {
+  try {
+    const certificates = await Certificate.find({ userId: req.user.userId });
+    res.json(certificates);
+  } catch (error) {
+    console.error('Certificate fetch error:', error);
+    res.status(500).json({ 
+      error: "Failed to fetch certificates",
+      details: error.message
+    });
   }
-  
-  res.json(certificate);
-}));
+});
+
+app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
+  try {
+    console.log('Verifying certificate:', req.params.id);
+    
+    const certificate = await Certificate.findOne({ 
+      certificateId: req.params.id 
+    });
+    
+    if (!certificate) {
+      console.log('Certificate not found:', req.params.id);
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    res.json(certificate);
+  } catch (error) {
+    console.error('Certificate verification error:', error);
+    res.status(500).json({ 
+      error: "Failed to verify certificate",
+      details: error.message 
+    });
+  }
+});
+
+// Certificate routes
+app.get('/certificates/user', verifyToken, async (req, res) => {
+  try {
+    // Ensure database connection
+    await connectToDatabase();
+    
+    console.log("Fetching certificates for user:", req.user.userId);
+    const certificates = await Certificate.find({ userId: req.user.userId })
+      .sort({ issueDate: -1 })
+      .lean();
+
+    console.log(`Found ${certificates.length} certificates`);
+    res.json(certificates || []);
+  } catch (error) {
+    console.error("Certificate fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch certificates" });
+  }
+});
+
+app.get('/certificates/verify/:id', async (req, res) => {
+  try {
+    await connectToDatabase();
+    console.log('Verifying certificate:', req.params.id);
+    
+    const certificate = await Certificate.findOne({ 
+      certificateId: req.params.id 
+    }).lean();
+    
+    if (!certificate) {
+      console.log('Certificate not found:', req.params.id);
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    res.json(certificate);
+  } catch (error) {
+    console.error("Certificate verification error:", error);
+    res.status(500).json({ error: "Failed to verify certificate" });
+  }
+});
+
+app.delete('/certificates/:id', verifyToken, async (req, res) => {
+  try {
+    await connectToDatabase();
+    const result = await Certificate.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+    
+    if (!result) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    res.json({ message: "Certificate deleted successfully" });
+  } catch (error) {
+    console.error("Delete certificate error:", error);
+    res.status(500).json({ error: "Failed to delete certificate" });
+  }
+});
 
 // Helper functions for certificate grading
 function calculateGrade(score) {
@@ -279,47 +354,4 @@ function calculateBadgeLevel(score) {
   return 'Beginner';
 }
 
-// Add global error handler at the end
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'development' 
-      ? err.message 
-      : 'Internal server error'
-  });
-});
-
-// Handler with improved error handling
-const handler = async (event, context) => {
-  // Important: this prevents function timeout from waiting for DB connection
-  context.callbackWaitsForEmptyEventLoop = false;
-  
-  try {
-    await connectToDatabase();
-    const handler = serverless(app);
-    const result = await handler(event, context);
-    
-    // Ensure JSON content type in response
-    if (!result.headers) {
-      result.headers = {};
-    }
-    result.headers['Content-Type'] = 'application/json';
-    
-    return result;
-  } catch (error) {
-    console.error("Handler error:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        error: process.env.NODE_ENV === 'development' 
-          ? error.message 
-          : 'Internal server error'
-      })
-    };
-  }
-};
-
-module.exports.handler = handler;
+module.exports.handler = serverless(app);

@@ -7,30 +7,16 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-let cachedDb = null;
-
 // Middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// CORS configuration for Netlify
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://interviewxpert.netlify.app',
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`Origin ${origin} not allowed by CORS`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true
 }));
+
+app.use(express.json());
+
+// Ensure MongoDB connection
+let cachedDb = null;
 
 async function connectToDatabase() {
   if (cachedDb) {
@@ -40,18 +26,10 @@ async function connectToDatabase() {
 
   try {
     console.log("Creating new MongoDB connection");
-    // Add connection options for better reliability
     const connection = await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      family: 4,
-      keepAlive: true,
-      retryWrites: true,
-      w: 'majority'
+      useUnifiedTopology: true
     });
-    
     cachedDb = connection;
     console.log("MongoDB Connected Successfully");
     return cachedDb;
@@ -322,23 +300,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
-// Wrap your route handlers with database connection
-const handler = async (event, context) => {
-  // Make context callbackWaitsForEmptyEventLoop = false to reuse the connection
-  context.callbackWaitsForEmptyEventLoop = false;
-  
-  try {
-    await connectToDatabase();
-    // Handle the request with express
-    const handler = serverless(app);
-    return await handler(event, context);
-  } catch (error) {
-    console.error("Handler error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal Server Error" })
-    };
-  }
-};
-
-module.exports.handler = handler;
+module.exports.handler = serverless(app);
