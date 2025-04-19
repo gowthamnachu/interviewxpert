@@ -51,46 +51,41 @@ const RegisterPage = () => {
     }
 
     setIsLoading(true);
+    console.log('Attempting registration with URL:', `${config.apiUrl}/.netlify/functions/api/register`);
 
     try {
-      // Try standard API endpoint first, then fallback to Netlify functions path
       const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/api/register`,
+        url: `${config.apiUrl}/.netlify/functions/api/register`,
         data: {
           username,
           email,
           password
         },
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         timeout: 30000
-      }).catch(async (err) => {
-        if (err.response?.status === 404) {
-          // Fallback to Netlify functions path
-          return await axios({
-            method: 'post',
-            url: `${config.apiUrl}/.netlify/functions/api/register`,
-            data: { username, email, password },
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 30000
-          });
-        }
-        throw err;
       });
+
+      console.log('Registration response:', response);
 
       if (response.status === 201) {
         setSuccessMessage("Registration successful! Redirecting to login...");
         setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('Registration error details:', {
+        error: err,
+        response: err.response,
+        config: err.config
+      });
       const errorMessage = err.response?.data?.error || 
                           err.response?.statusText ||
                           err.message ||
                           'Registration failed. Please try again later.';
-      setError(`${errorMessage} (Status: ${err.response?.status || 'Unknown'})`);
+      setError(`Registration failed: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
