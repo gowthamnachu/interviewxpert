@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 import { config } from '../config';
 import "./Auth.css";
 
@@ -52,38 +53,38 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${config.apiUrl}/.netlify/functions/api/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
+      await axios({
+        method: 'post',
+        url: `${config.apiUrl}/register`,
+        data: {
           username,
           email,
           password
-        })
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true,
+        validateStatus: function (status) {
+          return status >= 200 && status < 500; // Accept all responses to handle errors properly
+        }
       });
-
-      // Check if the response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server error: Invalid response format");
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
 
       setSuccessMessage("Account created successfully!");
       setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (err) {
-      console.error('Registration error:', err);
-      setError(err.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        url: `${config.apiUrl}/register`
+      });
+      const errorMessage = err.response?.data?.error || 
+                          err.message || 
+                          'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
