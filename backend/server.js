@@ -103,43 +103,24 @@ app.get("/api/questions", async (req, res) => {
   }
 });
 
-// Register route - update route path to match Netlify functions
-app.post("/.netlify/functions/api/register", async (req, res) => {
+// Register route
+app.post("/api/register", async (req, res) => {
   try {
-    console.log('Received registration request:', {
-      body: req.body,
-      headers: req.headers
-    });
-    
     const { username, email, password } = req.body;
     
-    if (!username || !email || !password) {
-      console.log('Missing required fields');
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
-      console.log('User already exists');
       return res.status(400).json({ error: "Username or email already exists" });
     }
 
     // Create new user
     const user = new User({ username, email, password });
     await user.save();
-    console.log('User registered successfully');
 
-    res.status(201).json({ 
-      message: "User registered successfully",
-      success: true 
-    });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ 
-      error: "Registration failed", 
-      details: error.message 
-    });
+    res.status(500).json({ error: "Registration failed" });
   }
 });
 

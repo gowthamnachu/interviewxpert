@@ -53,30 +53,44 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${config.apiUrl}/register`, {
-        username,
-        email,
-        password
-      }, {
+      console.log('Sending registration request to:', `${config.apiUrl}/register`);
+      const response = await axios({
+        method: 'post',
+        url: `${config.apiUrl}/register`, // Remove /api since it's already in the base URL
+        data: {
+          username,
+          email,
+          password
+        },
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 15000
       });
 
-      if (response.data && response.data.message) {
+      console.log('Registration response:', response.data);
+
+      if (response.data?.message) {
         setSuccessMessage(response.data.message);
         setTimeout(() => {
           navigate("/login");
         }, 2000);
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (err) {
-      console.error('Registration error details:', {
-        error: err,
-        response: err.response,
-        url: `${config.apiUrl}/register`
+      console.error('Registration error:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        endpoint: `${config.apiUrl}/api/register`
       });
-      const errorMessage = err.response?.data?.error || 
-                          'Registration failed. Please try again.';
+      
+      const errorMessage = 
+        err.response?.data?.error ||
+        (err.response?.status === 404 ? 'Registration service not found' : err.message) ||
+        'Registration failed. Please try again later.';
+      
       setError(errorMessage);
     } finally {
       setIsLoading(false);
