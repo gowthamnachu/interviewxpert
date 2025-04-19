@@ -162,7 +162,7 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
 });
 
 // Register route
-app.post("/.netlify/functions/api/register", async (req, res) => {
+app.post(["/api/register", "/.netlify/functions/api/register"], async (req, res) => {
   try {
     const { username, email, password } = req.body;
     

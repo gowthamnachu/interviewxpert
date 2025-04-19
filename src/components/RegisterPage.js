@@ -53,9 +53,10 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
+      // Try standard API endpoint first, then fallback to Netlify functions path
       const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/api/register`,  // Updated endpoint
+        url: `${config.apiUrl}/api/register`,
         data: {
           username,
           email,
@@ -64,7 +65,19 @@ const RegisterPage = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 30000 // Increased timeout
+        timeout: 30000
+      }).catch(async (err) => {
+        if (err.response?.status === 404) {
+          // Fallback to Netlify functions path
+          return await axios({
+            method: 'post',
+            url: `${config.apiUrl}/.netlify/functions/api/register`,
+            data: { username, email, password },
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000
+          });
+        }
+        throw err;
       });
 
       if (response.status === 201) {
@@ -73,13 +86,11 @@ const RegisterPage = () => {
       }
     } catch (err) {
       console.error('Registration error:', err);
-      
       const errorMessage = err.response?.data?.error || 
                           err.response?.statusText ||
                           err.message ||
                           'Registration failed. Please try again later.';
-      
-      setError(errorMessage);
+      setError(`${errorMessage} (Status: ${err.response?.status || 'Unknown'})`);
     } finally {
       setIsLoading(false);
     }
