@@ -21,6 +21,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  REACT_APP_NETLIFY = "true"
+  NODE_ENV = "production"
 
 [dev]
   framework = "#custom"
