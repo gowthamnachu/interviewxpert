@@ -55,35 +55,42 @@ const RegisterPage = () => {
     try {
       await axios({
         method: 'post',
-        url: `${config.apiUrl}/register`,
+        url: `${config.apiUrl}/.netlify/functions/api/register`,
         data: {
           username,
           email,
           password
         },
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         withCredentials: true,
+        maxRedirects: 5,
+        timeout: 10000, // 10 second timeout
         validateStatus: function (status) {
           return status >= 200 && status < 500; // Accept all responses to handle errors properly
         }
       });
 
       setSuccessMessage("Account created successfully!");
+      // Add a longer delay to ensure backend processing completes
       setTimeout(() => {
         navigate("/login");
-      }, 2000);
+      }, 3000);
     } catch (err) {
       console.error('Registration error:', {
         status: err.response?.status,
         data: err.response?.data,
         message: err.message,
-        url: `${config.apiUrl}/register`
+        config: err.config,
+        url: `${config.apiUrl}/.netlify/functions/api/register`
       });
-      const errorMessage = err.response?.data?.error || 
-                          err.message || 
-                          'Registration failed. Please try again.';
+      const errorMessage = err.response?.status === 404 
+        ? "Registration service unavailable. Please try again later."
+        : err.response?.data?.error || 
+          err.message || 
+          'Registration failed. Please try again.';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
