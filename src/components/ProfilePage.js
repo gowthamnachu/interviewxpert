@@ -29,20 +29,13 @@ const ProfilePage = () => {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${config.apiUrl}/certificates/user`, {
+      const response = await fetch(`${config.apiUrl}/.netlify/functions/api/certificates`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        },
-        credentials: 'include'
+        }
       });
-
-      // Handle HTML responses
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('text/html')) {
-        throw new Error('Invalid server response format');
-      }
 
       if (response.status === 401) {
         localStorage.clear();
@@ -50,15 +43,7 @@ const ProfilePage = () => {
         return;
       }
 
-      // Try to parse the response text
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : [];
-      } catch (e) {
-        console.error('Failed to parse response:', text);
-        throw new Error('Invalid response format from server');
-      }
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || `Server responded with ${response.status}`);

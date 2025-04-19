@@ -245,41 +245,44 @@ app.post('/.netlify/functions/api/certificates', verifyToken, async (req, res) =
 
 app.get('/.netlify/functions/api/certificates', verifyToken, async (req, res) => {
   try {
-    const certificates = await Certificate.find({ userId: req.user.userId });
-    res.json(certificates);
+    // Ensure database connection
+    await connectToDatabase();
+    
+    console.log("Fetching certificates for user:", req.user.userId);
+    const certificates = await Certificate.find({ userId: req.user.userId })
+      .sort({ issueDate: -1 })
+      .lean()
+      .exec();
+
+    res.setHeader('Content-Type', 'application/json');
+    res.json(certificates || []);
   } catch (error) {
-    console.error('Certificate fetch error:', error);
-    res.status(500).json({ 
-      error: "Failed to fetch certificates",
-      details: error.message
-    });
+    console.error("Certificate fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch certificates" });
   }
 });
 
 app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
   try {
+    await connectToDatabase();
     console.log('Verifying certificate:', req.params.id);
     
     const certificate = await Certificate.findOne({ 
       certificateId: req.params.id 
-    });
+    }).lean().exec();
     
     if (!certificate) {
-      console.log('Certificate not found:', req.params.id);
       return res.status(404).json({ error: "Certificate not found" });
     }
     
+    res.setHeader('Content-Type', 'application/json');
     res.json(certificate);
   } catch (error) {
-    console.error('Certificate verification error:', error);
-    res.status(500).json({ 
-      error: "Failed to verify certificate",
-      details: error.message 
-    });
+    console.error("Certificate verification error:", error);
+    res.status(500).json({ error: "Failed to verify certificate" });
   }
 });
 
-// Certificate routes
 app.get('/certificates/user', verifyToken, async (req, res) => {
   try {
     // Ensure database connection
