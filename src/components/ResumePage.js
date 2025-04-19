@@ -80,7 +80,11 @@ const ResumePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Generate PDF
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
       const doc = new jsPDF();
 
       // Add the profile picture if it exists
@@ -188,7 +192,6 @@ const ResumePage = () => {
 
       // Convert the PDF to a base64 string
       const pdfBase64 = doc.output('datauristring');
-      const token = localStorage.getItem("token");
       
       console.log('Saving resume to:', `${config.apiUrl}/resume`);
       
@@ -231,9 +234,8 @@ const ResumePage = () => {
         navigate("/profile");
       }, 2000);
     } catch (error) {
-      console.error("Resume save error:", error);
-      setMessage(`Failed to ${isEditing ? 'update' : 'create'} resume: ${error.message}`);
-      setTimeout(() => setMessage(""), 5000);
+      console.error("Resume operation error:", error);
+      setMessage(error.message);
     }
   };
 

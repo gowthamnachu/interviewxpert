@@ -179,6 +179,10 @@ const ProfilePage = () => {
   const handleDeleteResume = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
       const response = await fetch(`${config.apiUrl}/resume`, {
         method: "DELETE",
         headers: {
@@ -187,8 +191,12 @@ const ProfilePage = () => {
         }
       });
 
-      const data = await response.json();
+      if (response.status === 404) {
+        throw new Error("Resume not found");
+      }
+
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Failed to delete resume');
       }
 
