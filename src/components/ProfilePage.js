@@ -85,6 +85,11 @@ const ProfilePage = () => {
       setLoadingState('Fetching resume data...');
       setError(null);
       const token = localStorage.getItem("token");
+      
+      if (!token) {
+        throw new Error("Authentication token missing");
+      }
+
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -92,22 +97,31 @@ const ProfilePage = () => {
         }
       });
 
+      if (response.status === 401) {
+        localStorage.clear();
+        navigate("/login");
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to fetch resume');
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server responded with status ${response.status}`);
       }
 
       const data = await response.json();
       setLoadingState('Processing resume information...');
-      console.log("Resume data received:", !!data.pdfData); // Debug log
-      if (data && data.pdfData) {
+      
+      if (data && Object.keys(data).length > 0) {
         setResume(data);
         setLoadingState('Resume loaded successfully!');
       } else {
-        setError("No PDF data found in resume");
+        setResume(null);
+        setLoadingState('');
       }
     } catch (error) {
       console.error("Error fetching resume:", error);
       setError(error.message);
+      setResume(null);
     } finally {
       setTimeout(() => {
         setLoading(false);
@@ -259,7 +273,10 @@ const ProfilePage = () => {
       {error ? (
         <div className="error-message">{error}</div>
       ) : loading ? (
-        <div className="loading-spinner">Loading certificates...</div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading certificates...</div>
+        </div>
       ) : certificates.length > 0 ? (
         certificates.map((cert) => (
           <div key={cert._id || cert.certificateId} className="certificate-card">
@@ -267,19 +284,34 @@ const ProfilePage = () => {
             <div className="certificate-info">
               <h4>{cert.domain}</h4>
               <p>Score: {cert.score}%</p>
-              <p>Date: {new Date(cert.date).toLocaleDateString()}</p>
+              <p>Grade: {cert.grade}</p>
+              <p>Badge Level: {cert.badgeLevel}</p>
+              <p>Issue Date: {new Date(cert.issueDate).toLocaleDateString()}</p>
+              <p>Expires: {new Date(cert.expiryDate).toLocaleDateString()}</p>
               <p className="certificate-id">ID: {cert.certificateId}</p>
-              <button 
-                className="delete-btn"
-                onClick={() => handleDeleteCertificate(cert._id)}
-              >
-                <FaTrash /> Delete
-              </button>
+              <div className="certificate-actions">
+                <button 
+                  className="verify-btn"
+                  onClick={() => window.open(`/verify-certificate/${cert.certificateId}`, '_blank')}
+                >
+                  Verify
+                </button>
+                <button 
+                  className="delete-btn"
+                  onClick={() => handleDeleteCertificate(cert._id)}
+                >
+                  <FaTrash /> Delete
+                </button>
+              </div>
             </div>
           </div>
         ))
       ) : (
-        <p>No certificates found</p>
+        <div className="no-certificates">
+          <FaCertificate className="no-certificates-icon" />
+          <p>No certificates found</p>
+          <p className="sub-text">Complete mock tests to earn certificates</p>
+        </div>
       )}
     </div>
   );
