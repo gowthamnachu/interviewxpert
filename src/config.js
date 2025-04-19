@@ -1,12 +1,10 @@
 const getApiUrl = () => {
-  // Check if running on Netlify
-  const isNetlify = window.location.hostname.includes('netlify.app');
-  
+  // Check if running in development
   if (process.env.NODE_ENV === 'development') {
     return 'http://localhost:3001/api';
   }
 
-  // For Netlify deployment
+  // For production/Netlify deployment - always use the Netlify functions path
   return '/.netlify/functions/api';
 };
 
