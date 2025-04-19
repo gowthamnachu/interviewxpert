@@ -6,7 +6,6 @@ const getApiUrl = () => {
 };
 
 export const config = {
-  apiUrl: process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000/api' 
-    : '/.netlify/functions/api'
+  apiUrl: getApiUrl(),
+  env: process.env.NODE_ENV || 'development'
 };
