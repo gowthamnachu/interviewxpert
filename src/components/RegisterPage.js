@@ -51,21 +51,23 @@ const RegisterPage = () => {
     }
 
     setIsLoading(true);
-    console.log('Config API URL:', config.apiUrl); // Debug log
+    const registerEndpoint = `${config.apiUrl}/register`;
+    console.log('Attempting registration at:', registerEndpoint);
 
     try {
       const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/api/register`,
+        url: registerEndpoint,
         data: {
           username,
           email,
           password
         },
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        timeout: 30000
+        timeout: 30000,
+        withCredentials: true
       });
 
       console.log('Registration response:', response);
@@ -78,15 +80,13 @@ const RegisterPage = () => {
       console.error('Registration error:', {
         message: err.message,
         response: err.response?.data,
-        status: err.response?.status,
-        url: err.config?.url
+        status: err.response?.status
       });
-      
       const errorMessage = err.response?.data?.error || 
                           err.response?.statusText ||
                           err.message ||
                           'Registration failed. Please try again later.';
-      setError(`Registration failed: ${errorMessage}`);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

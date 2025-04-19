@@ -37,6 +37,7 @@ const sendOTPEmail = async (email, otp, purpose) => {
 // Register new user
 router.post("/register", async (req, res) => {
   try {
+    console.log('Register request received:', req.body);
     const { username, email, password } = req.body;
 
     // Validate password strength
@@ -51,7 +52,9 @@ router.post("/register", async (req, res) => {
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res.status(400).json({
-        error: "Username or email already exists"
+        error: existingUser.username === username ? 
+              "Username already taken" : 
+              "Email already registered"
       });
     }
 
@@ -64,11 +67,13 @@ router.post("/register", async (req, res) => {
     await new OTP({ userId: user._id, email, otp, purpose: "verify" }).save();
     await sendOTPEmail(email, otp, "verify");
 
+    console.log('Registration successful:', { username, email });
     res.status(201).json({
       message: "Registration successful. Please verify your email."
     });
   } catch (error) {
-    res.status(500).json({ error: "Registration failed" });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: "Registration failed: " + error.message });
   }
 });
 
