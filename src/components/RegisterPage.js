@@ -53,10 +53,10 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      console.log('Sending registration request to:', `${config.apiUrl}/api/register`);
+      console.log('Sending registration request to:', `${config.apiUrl}/register`);
       const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/api/register`,
+        url: `${config.apiUrl}/register`, // Remove /api since it's already in the base URL
         data: {
           username,
           email,
