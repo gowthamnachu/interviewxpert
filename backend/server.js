@@ -17,12 +17,31 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Enable CORS for all routes
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://interviewxpert.netlify.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Origin ${origin} not allowed by CORS`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert')
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/interviewxpert', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  retryWrites: true,
+  w: 'majority'
+})
   .then(() => {
     console.log("✅ MongoDB Connected");
   })
@@ -386,6 +405,16 @@ app.delete('/api/certificates/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error deleting certificate' });
   }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message 
+  });
 });
 
 const PORT = process.env.PORT || 3001;
