@@ -53,44 +53,44 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      await axios({
+      console.log('Sending registration request to:', `${config.apiUrl}/api/register`);
+      const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/.netlify/functions/api/register`,
+        url: `${config.apiUrl}/api/register`,
         data: {
           username,
           email,
           password
         },
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         },
-        withCredentials: true,
-        maxRedirects: 5,
-        timeout: 10000, // 10 second timeout
-        validateStatus: function (status) {
-          return status >= 200 && status < 500; // Accept all responses to handle errors properly
-        }
+        timeout: 15000
       });
 
-      setSuccessMessage("Account created successfully!");
-      // Add a longer delay to ensure backend processing completes
-      setTimeout(() => {
-        navigate("/login");
-      }, 3000);
+      console.log('Registration response:', response.data);
+
+      if (response.data?.message) {
+        setSuccessMessage(response.data.message);
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (err) {
       console.error('Registration error:', {
         status: err.response?.status,
         data: err.response?.data,
         message: err.message,
-        config: err.config,
-        url: `${config.apiUrl}/.netlify/functions/api/register`
+        endpoint: `${config.apiUrl}/api/register`
       });
-      const errorMessage = err.response?.status === 404 
-        ? "Registration service unavailable. Please try again later."
-        : err.response?.data?.error || 
-          err.message || 
-          'Registration failed. Please try again.';
+      
+      const errorMessage = 
+        err.response?.data?.error ||
+        (err.response?.status === 404 ? 'Registration service not found' : err.message) ||
+        'Registration failed. Please try again later.';
+      
       setError(errorMessage);
     } finally {
       setIsLoading(false);
