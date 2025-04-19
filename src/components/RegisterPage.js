@@ -51,26 +51,36 @@ const RegisterPage = () => {
     }
 
     setIsLoading(true);
-    const registerEndpoint = `${config.apiUrl}/register`;
-    console.log('Attempting registration at:', registerEndpoint);
+    
+    // Try both standard and Netlify function endpoints
+    const standardEndpoint = `${config.apiUrl}/register`;
+    const netlifyEndpoint = `${config.apiUrl}/register`;
 
     try {
-      const response = await axios({
-        method: 'post',
-        url: registerEndpoint,
-        data: {
-          username,
-          email,
-          password
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 30000,
-        withCredentials: true
-      });
-
-      console.log('Registration response:', response);
+      let response;
+      try {
+        // First try standard endpoint
+        response = await axios({
+          method: 'post',
+          url: standardEndpoint,
+          data: { username, email, password },
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 30000
+        });
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // If 404, try Netlify endpoint
+          response = await axios({
+            method: 'post',
+            url: netlifyEndpoint,
+            data: { username, email, password },
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000
+          });
+        } else {
+          throw err;
+        }
+      }
 
       if (response.status === 201) {
         setSuccessMessage("Registration successful! Redirecting to login...");
@@ -80,8 +90,10 @@ const RegisterPage = () => {
       console.error('Registration error:', {
         message: err.message,
         response: err.response?.data,
-        status: err.response?.status
+        status: err.response?.status,
+        endpoints: { standardEndpoint, netlifyEndpoint }
       });
+      
       const errorMessage = err.response?.data?.error || 
                           err.response?.statusText ||
                           err.message ||

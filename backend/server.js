@@ -93,7 +93,7 @@ app.get("/api/questions", async (req, res) => {
 // Register route
 app.post(["/api/register", "/.netlify/functions/api/register"], async (req, res) => {
   try {
-    console.log('Registration request received:', req.body); // Debug log
+    console.log('Registration request received:', { ...req.body, password: '[REDACTED]' });
     const { username, email, password } = req.body;
     
     if (!username || !email || !password) {
