@@ -211,9 +211,9 @@ const ResumePage = () => {
         })
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Server responded with status ${response.status}`);
+        throw new Error(data.error || `Server error: ${response.status}`);
       }
 
       const result = await response.json();

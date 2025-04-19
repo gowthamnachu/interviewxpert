@@ -195,25 +195,28 @@ const verifyToken = async (req, res, next) => {
 app.post("/api/resume", verifyToken, async (req, res) => {
   try {
     const userId = req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "User ID not found in token" });
+    }
 
     const resumeData = { ...req.body, userId };
-    
-    // Update if exists, create if doesn't
     const existingResume = await Resume.findOne({ userId });
+
     if (existingResume) {
       const updatedResume = await Resume.findOneAndUpdate(
         { userId },
-        { ...resumeData, updatedAt: Date.now() },
+        resumeData,
         { new: true }
       );
-      res.json(updatedResume);
-    } else {
-      const newResume = new Resume(resumeData);
-      await newResume.save();
-      res.status(201).json(newResume);
+      return res.json(updatedResume);
     }
+
+    const newResume = new Resume(resumeData);
+    await newResume.save();
+    res.status(201).json(newResume);
   } catch (error) {
-    res.status(500).json({ error: "Failed to save resume" });
+    console.error("Resume save error:", error);
+    res.status(500).json({ error: error.message || "Failed to save resume" });
   }
 });
 
@@ -263,7 +266,8 @@ app.delete("/api/resume", verifyToken, async (req, res) => {
     
     res.json({ message: "Resume deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to delete resume" });
+    console.error("Resume deletion error:", error);
+    res.status(500).json({ error: error.message || "Failed to delete resume" });
   }
 });
 

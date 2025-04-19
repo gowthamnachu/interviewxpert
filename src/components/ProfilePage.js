@@ -182,14 +182,14 @@ const ProfilePage = () => {
       const response = await fetch(`${config.apiUrl}/resume`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
         }
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete resume');
+        throw new Error(data.error || 'Failed to delete resume');
       }
 
       setResume(null);
@@ -197,8 +197,8 @@ const ProfilePage = () => {
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Resume deletion error:", error);
-      setError(`Failed to delete resume: ${error.message}`);
-      setTimeout(() => setError(""), 3000);
+      setError(error.message);
+      setTimeout(() => setError(null), 3000);
     }
   };
 
