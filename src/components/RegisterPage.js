@@ -55,7 +55,7 @@ const RegisterPage = () => {
     try {
       const response = await axios({
         method: 'post',
-        url: `${config.apiUrl}/.netlify/functions/api/register`,
+        url: `${config.apiUrl}/api/register`,  // Updated endpoint
         data: {
           username,
           email,
