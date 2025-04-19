@@ -54,7 +54,7 @@ const RegisterPage = () => {
     
     // Try both standard and Netlify function endpoints
     const standardEndpoint = `${config.apiUrl}/register`;
-    const netlifyEndpoint = `${config.apiUrl}/register`;
+    const netlifyEndpoint = `${config.apiUrl}/.netlify/functions/api/register`;
 
     try {
       let response;

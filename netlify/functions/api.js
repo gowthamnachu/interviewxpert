@@ -103,6 +103,42 @@ const verifyToken = (req, res, next) => {
 };
 
 // Your existing routes go here
+app.post('/.netlify/functions/api/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Validate required fields
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Validate password strength
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: "Password must be at least 8 characters long and include a number and special character"
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(400).json({ 
+        error: existingUser.username === username ? "Username already taken" : "Email already registered" 
+      });
+    }
+
+    // Create new user
+    const user = new User({ username, email, password });
+    await user.save();
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: error.message || "Registration failed" });
+  }
+});
+
 app.get('/.netlify/functions/api/questions', async (req, res) => {
   try {
     const { domain } = req.query;
