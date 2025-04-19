@@ -4,6 +4,7 @@ import axios from 'axios';
 import { config } from '../config';
 import { FaSearch, FaCheckCircle } from "react-icons/fa";
 import './QuestionList.css';
+import { AdvancedLoading } from './LoadingAnimation';
 
 const QuestionList = () => {
   const location = useLocation();
@@ -13,6 +14,8 @@ const QuestionList = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const selectedDomain = location.state?.domain || "Software Engineering";
+  const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -75,6 +78,25 @@ const QuestionList = () => {
     fetchQuestions();
   }, [selectedDomain, navigate]);
 
+  useEffect(() => {
+    if (loading) {
+      const stageInterval = setInterval(() => {
+        setCurrentLoadingStage(prev => (prev < 3 ? prev + 1 : prev));
+      }, 1500);
+      return () => clearInterval(stageInterval);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (loading) {
+      const progressInterval = setInterval(() => {
+        setProgress(prev => (prev >= 100 ? 100 : prev + 1));
+      }, 50);
+
+      return () => clearInterval(progressInterval);
+    }
+  }, [loading]);
+
   const highlightSearchText = (text, searchTerm) => {
     if (!searchTerm) return text;
     const regex = new RegExp(`(${searchTerm})`, 'gi');
@@ -93,6 +115,39 @@ const QuestionList = () => {
       question.expected?.some(keyword => keyword.toLowerCase().includes(searchLower))
     );
   });
+
+  if (loading) {
+    return (
+      <div className="question-list-loading">
+        <AdvancedLoading 
+          progress={progress}
+          currentStage={currentLoadingStage}
+          stages={[
+            {
+              title: "Initializing System",
+              description: "Setting up question bank environment",
+              icon: "🔄"
+            },
+            {
+              title: `Loading ${selectedDomain} Questions`,
+              description: "Fetching specialized questions from database",
+              icon: "📚"
+            },
+            {
+              title: "Processing Content",
+              description: "Analyzing and organizing interview materials",
+              icon: "⚙️"
+            },
+            {
+              title: "Final Preparations",
+              description: "Setting up interactive interface",
+              icon: "✨"
+            }
+          ]}
+        />
+      </div>
+    );
+  }
 
   if (!selectedDomain) {
     return null;

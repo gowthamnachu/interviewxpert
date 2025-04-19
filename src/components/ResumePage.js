@@ -3,6 +3,8 @@ import { jsPDF } from "jspdf"; // jsPDF library to generate PDF
 import { useNavigate, useLocation } from "react-router-dom";
 import { config } from '../config';
 import "./ResumePage.css"; // Import the CSS for animations and styling
+import { AdvancedLoading } from './LoadingAnimation';
+import { resumeLoadingStages } from '../utils/LoadingMessages';
 
 const ResumePage = () => {
   const navigate = useNavigate(); // useNavigate for page redirection
@@ -20,6 +22,9 @@ const ResumePage = () => {
   const [volunteerExperience, setVolunteerExperience] = useState("");
   const [photo, setPhoto] = useState(null); // State for the uploaded photo
   const [message, setMessage] = useState(""); // State for success message visibility
+  const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
 
   // Predefined summary, skills, awards
   const summary = "A highly motivated and results-driven individual with a passion for technology and problem-solving. Seeking to contribute skills and knowledge to a dynamic team.";
@@ -41,6 +46,27 @@ const ResumePage = () => {
       fetchResume();
     }
   }, [isEditing, resumeData]);
+
+  useEffect(() => {
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => (prev >= 100 ? 100 : prev + 1));
+    }, 50);
+
+    const stageInterval = setInterval(() => {
+      setCurrentLoadingStage(prev => (prev < 3 ? prev + 1 : prev));
+    }, 1500);
+
+    // Simulate loading completion
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
+    return () => {
+      clearInterval(progressInterval);
+      clearInterval(stageInterval);
+      clearTimeout(loadingTimeout);
+    };
+  }, []); // Remove loading from dependencies
 
   const fetchResume = async () => {
     try {
@@ -238,6 +264,18 @@ const ResumePage = () => {
       setMessage(error.message);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="resume-loading">
+        <AdvancedLoading 
+          progress={loadingProgress}
+          currentStage={currentLoadingStage}
+          stages={resumeLoadingStages}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="resume-container">

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { config } from '../config';
 import "./ProfilePage.css";
 import { FaUser, FaEnvelope, FaCalendar, FaCertificate, FaTrash, FaDownload, FaEdit } from "react-icons/fa";
+import { AdvancedLoading } from './LoadingAnimation';
+import { profileLoadingStages } from '../utils/LoadingMessages';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -13,6 +15,8 @@ const ProfilePage = () => {
   const [error, setError] = useState(null);
   const [certificates, setCertificates] = useState([]);
   const [loadingState, setLoadingState] = useState('');
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
 
   const username = localStorage.getItem("userUsername");
   const email = localStorage.getItem("userEmail");
@@ -115,6 +119,23 @@ const ProfilePage = () => {
       }, 500);
     }
   };
+
+  useEffect(() => {
+    if (loading) {
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => (prev >= 100 ? 100 : prev + 1));
+      }, 50);
+
+      const stageInterval = setInterval(() => {
+        setCurrentLoadingStage(prev => (prev < 3 ? prev + 1 : prev));
+      }, 1500);
+
+      return () => {
+        clearInterval(progressInterval);
+        clearInterval(stageInterval);
+      };
+    }
+  }, [loading]);
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
@@ -324,6 +345,18 @@ const ProfilePage = () => {
       )}
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="profile-loading">
+        <AdvancedLoading 
+          progress={loadingProgress}
+          currentStage={currentLoadingStage}
+          stages={profileLoadingStages}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">

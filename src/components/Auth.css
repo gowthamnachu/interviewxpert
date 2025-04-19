@@ -565,3 +565,30 @@ p span:hover {
     padding: 2rem;
   }
 }
+
+.password-toggle {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.password-toggle:hover {
+  color: #4C9D9B;
+}
+
+/* Ensure the password field has enough padding for the icon */
+.input-group input[type="password"],
+.input-group input[type="text"] {
+  padding-right: 45px;
+}

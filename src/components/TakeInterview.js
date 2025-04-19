@@ -3,9 +3,10 @@ import axios from "axios";
 import { Bar, Pie, Radar } from "react-chartjs-2";
 import "chart.js/auto"; // Required for Chart.js
 import "./TakeInterview.css"; // Import the CSS file
-import LoadingSpinner from "./LoadingSpinner";
 import { FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { config } from '../config';
+import { AdvancedLoading } from './LoadingAnimation';
+
 const TakeInterview = () => {
   const [selectedDomain, setSelectedDomain] = useState('');
   const [interviewStarted, setInterviewStarted] = useState(false);
@@ -30,6 +31,8 @@ const TakeInterview = () => {
   const [hesitationCount, setHesitationCount] = useState(0);
 
   const startTimeRef = useRef(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
 
   const generateSuggestions = useCallback((accuracy, fluencyScore, avgResponseTime) => {
     let feedback = "";
@@ -338,7 +341,55 @@ const TakeInterview = () => {
     }, 1500);
   };
 
-  if (loading && selectedDomain) return <LoadingSpinner message="Loading questions" />;
+  useEffect(() => {
+    if (loading) {
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => (prev >= 100 ? 100 : prev + 1));
+      }, 50);
+
+      const stageInterval = setInterval(() => {
+        setCurrentLoadingStage(prev => (prev < 3 ? prev + 1 : prev));
+      }, 1500);
+
+      return () => {
+        clearInterval(progressInterval);
+        clearInterval(stageInterval);
+      };
+    }
+  }, [loading]);
+
+  if (loading && selectedDomain) {
+    return (
+      <div className="interview-loading">
+        <AdvancedLoading 
+          progress={loadingProgress}
+          currentStage={currentLoadingStage}
+          stages={[
+            {
+              title: "Initializing AI Interview",
+              description: "Setting up interview environment",
+              icon: "🤖"
+            },
+            {
+              title: "Loading Question Bank",
+              description: `Preparing ${selectedDomain} questions`,
+              icon: "📝"
+            },
+            {
+              title: "Configuring AI",
+              description: "Setting up interview analysis systems",
+              icon: "⚡"
+            },
+            {
+              title: "Final Setup",
+              description: "Preparing interactive interview interface",
+              icon: "🎯"
+            }
+          ]}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="interview-container">

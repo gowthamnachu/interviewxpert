@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { config } from '../config';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import "./Auth.css";
 
 const LoginPage = ({ setIsLoggedIn }) => {
@@ -10,6 +11,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -71,7 +73,7 @@ const LoginPage = ({ setIsLoggedIn }) => {
         </div>
         <div className="input-group">
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -80,6 +82,14 @@ const LoginPage = ({ setIsLoggedIn }) => {
             disabled={isLoading}
           />
           <label htmlFor="password">Password</label>
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </button>
         </div>
         <button type="submit" disabled={isLoading}>
           {isLoading ? "Signing in..." : "Sign In"}
