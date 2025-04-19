@@ -58,28 +58,7 @@ const ProfilePage = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    // Check token validity
-    const token = localStorage.getItem('token');
-    const tokenExpiry = localStorage.getItem('tokenExpiry');
-    
-    if (!token || !tokenExpiry || new Date().getTime() > parseInt(tokenExpiry)) {
-      // Token is missing or expired
-      localStorage.clear();
-      navigate("/login");
-      return;
-    }
-
-    if (!localStorage.getItem("isLoggedIn")) {
-      navigate("/login");
-      return;
-    }
-
-    fetchResume();
-    fetchCertificates();
-  }, [navigate, fetchCertificates]);
-
-  const fetchResume = async () => {
+  const fetchResume = useCallback(async () => {
     try {
       setLoading(true);
       setLoadingState('Fetching resume data...');
@@ -128,7 +107,28 @@ const ProfilePage = () => {
         setLoadingState('');
       }, 500);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    // Check token validity
+    const token = localStorage.getItem('token');
+    const tokenExpiry = localStorage.getItem('tokenExpiry');
+    
+    if (!token || !tokenExpiry || new Date().getTime() > parseInt(tokenExpiry)) {
+      // Token is missing or expired
+      localStorage.clear();
+      navigate("/login");
+      return;
+    }
+
+    if (!localStorage.getItem("isLoggedIn")) {
+      navigate("/login");
+      return;
+    }
+
+    fetchResume();
+    fetchCertificates();
+  }, [navigate, fetchCertificates, fetchResume]);
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
