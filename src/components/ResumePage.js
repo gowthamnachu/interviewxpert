@@ -192,11 +192,8 @@ const ResumePage = () => {
 
       // Convert the PDF to a base64 string
       const pdfBase64 = doc.output('datauristring');
-      
-      console.log('Saving resume to:', `${config.apiUrl}/resume`);
-      
-      let responseData;
-      const response = await fetch(`${config.apiUrl}/resume`, {
+
+      const response = await fetch('/.netlify/functions/api/resume', {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -217,14 +214,16 @@ const ResumePage = () => {
         })
       });
 
-      // Read the response data once
-      responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.error || `Server responded with status ${response.status}`);
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Received invalid response from server");
       }
 
-      console.log('Resume saved successfully:', responseData);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save resume');
+      }
 
       setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
       doc.save(`${name}_resume.pdf`);
@@ -233,6 +232,7 @@ const ResumePage = () => {
         setMessage("");
         navigate("/profile");
       }, 2000);
+
     } catch (error) {
       console.error("Resume operation error:", error);
       setMessage(error.message);

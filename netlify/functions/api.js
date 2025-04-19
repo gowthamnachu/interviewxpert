@@ -214,19 +214,30 @@ app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
 });
 
 app.post('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
   try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
     const resumeData = { ...req.body, userId: req.user.userId };
-    
-    const resume = await Resume.findOneAndUpdate(
-      { userId: req.user.userId },
-      resumeData,
-      { new: true, upsert: true }
-    );
-    
-    res.json(resume);
+    let resume;
+
+    try {
+      resume = await Resume.findOneAndUpdate(
+        { userId: req.user.userId },
+        resumeData,
+        { new: true, upsert: true }
+      );
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return res.status(500).json({ error: "Database operation failed" });
+    }
+
+    return res.status(201).json(resume);
   } catch (error) {
     console.error('Resume save error:', error);
-    res.status(500).json({ error: error.message || "Failed to save resume" });
+    return res.status(500).json({ error: error.message || "Failed to save resume" });
   }
 });
 
@@ -366,5 +377,10 @@ function calculateBadgeLevel(score) {
   if (score >= 60) return 'Intermediate';
   return 'Beginner';
 }
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
 
 module.exports.handler = serverless(app);
