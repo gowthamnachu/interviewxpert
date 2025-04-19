@@ -230,7 +230,7 @@ const ProfilePage = () => {
   const handleDeleteCertificate = async (certId) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${config.apiUrl}/certificates/${certId}`, {
+      const response = await fetch(`/.netlify/functions/api/certificates/${certId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -238,16 +238,18 @@ const ProfilePage = () => {
         }
       });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to delete certificate');
+        throw new Error(data.error || 'Failed to delete certificate');
       }
 
-      setCertificates(certificates.filter(cert => cert._id !== certId));
+      setCertificates(prevCerts => prevCerts.filter(cert => cert._id !== certId));
       setMessage('Certificate deleted successfully');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error deleting certificate:', error);
-      setError('Failed to delete certificate');
+      setError(`Failed to delete certificate: ${error.message}`);
       setTimeout(() => setError(''), 3000);
     }
   };

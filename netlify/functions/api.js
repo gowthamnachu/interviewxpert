@@ -362,6 +362,32 @@ app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
   }
 });
 
+app.delete('/.netlify/functions/api/certificates/:id', verifyToken, async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const certificate = await Certificate.findOne({
+      _id: req.params.id,
+      userId: req.user.userId
+    });
+
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found or unauthorized" });
+    }
+
+    await Certificate.findByIdAndDelete(req.params.id);
+    res.json({ message: "Certificate deleted successfully" });
+  } catch (error) {
+    console.error('Delete certificate error:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ error: "Invalid certificate ID" });
+    }
+    res.status(500).json({ error: "Failed to delete certificate" });
+  }
+});
+
 // Helper functions for certificate grading
 function calculateGrade(score) {
   if (score >= 90) return 'A+';
