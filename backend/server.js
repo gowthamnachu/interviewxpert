@@ -108,19 +108,36 @@ app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
     
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Validate password strength
+    const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: "Password must be at least 8 characters long and include a number and special character"
+      });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
-      return res.status(400).json({ error: "Username or email already exists" });
+      console.log('User already exists:', { username, email });
+      return res.status(400).json({ 
+        error: existingUser.username === username ? "Username already taken" : "Email already registered" 
+      });
     }
 
     // Create new user
     const user = new User({ username, email, password });
     await user.save();
 
+    console.log('User registered successfully:', { username, email });
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Registration failed" });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: error.message || "Registration failed" });
   }
 });
 
