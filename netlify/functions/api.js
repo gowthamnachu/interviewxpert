@@ -14,6 +14,13 @@ app.use(cors({
   credentials: true
 }));
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  next();
+});
+
 // Database connection with connection pooling
 let cachedDb = null;
 
@@ -245,70 +252,37 @@ app.post('/.netlify/functions/api/certificates', verifyToken, async (req, res) =
 
 app.get('/.netlify/functions/api/certificates', verifyToken, async (req, res) => {
   try {
-    // Ensure database connection
-    await connectToDatabase();
-    
-    console.log("Fetching certificates for user:", req.user.userId);
-    const certificates = await Certificate.find({ userId: req.user.userId })
-      .sort({ issueDate: -1 })
-      .lean()
-      .exec();
-
-    res.setHeader('Content-Type', 'application/json');
-    res.json(certificates || []);
+    const certificates = await Certificate.find({ userId: req.user.userId });
+    res.json(certificates);
   } catch (error) {
-    console.error("Certificate fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch certificates" });
+    console.error('Certificate fetch error:', error);
+    res.status(500).json({ 
+      error: "Failed to fetch certificates",
+      details: error.message
+    });
+  }
+});
+
+app.get('/.netlify/functions/api/certificates/user', verifyToken, async (req, res) => {
+  try {
+    const certificates = await Certificate.find({ userId: req.user.userId });
+    res.json(certificates);
+  } catch (error) {
+    console.error('Certificate fetch error:', error);
+    res.status(500).json({ 
+      error: "Failed to fetch certificates",
+      details: error.message 
+    });
   }
 });
 
 app.get('/.netlify/functions/api/certificates/verify/:id', async (req, res) => {
   try {
-    await connectToDatabase();
     console.log('Verifying certificate:', req.params.id);
     
     const certificate = await Certificate.findOne({ 
       certificateId: req.params.id 
-    }).lean().exec();
-    
-    if (!certificate) {
-      return res.status(404).json({ error: "Certificate not found" });
-    }
-    
-    res.setHeader('Content-Type', 'application/json');
-    res.json(certificate);
-  } catch (error) {
-    console.error("Certificate verification error:", error);
-    res.status(500).json({ error: "Failed to verify certificate" });
-  }
-});
-
-app.get('/certificates/user', verifyToken, async (req, res) => {
-  try {
-    // Ensure database connection
-    await connectToDatabase();
-    
-    console.log("Fetching certificates for user:", req.user.userId);
-    const certificates = await Certificate.find({ userId: req.user.userId })
-      .sort({ issueDate: -1 })
-      .lean();
-
-    console.log(`Found ${certificates.length} certificates`);
-    res.json(certificates || []);
-  } catch (error) {
-    console.error("Certificate fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch certificates" });
-  }
-});
-
-app.get('/certificates/verify/:id', async (req, res) => {
-  try {
-    await connectToDatabase();
-    console.log('Verifying certificate:', req.params.id);
-    
-    const certificate = await Certificate.findOne({ 
-      certificateId: req.params.id 
-    }).lean();
+    });
     
     if (!certificate) {
       console.log('Certificate not found:', req.params.id);
@@ -317,27 +291,11 @@ app.get('/certificates/verify/:id', async (req, res) => {
     
     res.json(certificate);
   } catch (error) {
-    console.error("Certificate verification error:", error);
-    res.status(500).json({ error: "Failed to verify certificate" });
-  }
-});
-
-app.delete('/certificates/:id', verifyToken, async (req, res) => {
-  try {
-    await connectToDatabase();
-    const result = await Certificate.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.userId
+    console.error('Certificate verification error:', error);
+    res.status(500).json({ 
+      error: "Failed to verify certificate",
+      details: error.message 
     });
-    
-    if (!result) {
-      return res.status(404).json({ error: "Certificate not found" });
-    }
-    
-    res.json({ message: "Certificate deleted successfully" });
-  } catch (error) {
-    console.error("Delete certificate error:", error);
-    res.status(500).json({ error: "Failed to delete certificate" });
   }
 });
 

@@ -29,11 +29,10 @@ const ProfilePage = () => {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${config.apiUrl}/.netlify/functions/api/certificates`, {
+      const response = await fetch(`${config.apiUrl}/certificates/user`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         }
       });
 
@@ -44,18 +43,14 @@ const ProfilePage = () => {
       }
 
       const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || `Server responded with ${response.status}`);
+        throw new Error(data.error || 'Failed to fetch certificates');
       }
 
-      setCertificates(Array.isArray(data) ? 
-        data.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate)) : 
-        []
-      );
+      setCertificates(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Certificate fetch error:', error);
-      setError(`Failed to load certificates: ${error.message}`);
+      setError(error.message);
       setCertificates([]);
     } finally {
       setLoading(false);
@@ -89,29 +84,30 @@ const ProfilePage = () => {
       setLoadingState('Fetching resume data...');
       setError(null);
       const token = localStorage.getItem("token");
+      
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error('Failed to fetch resume');
+        throw new Error(data.error || 'Failed to fetch resume');
       }
 
-      const data = await response.json();
       setLoadingState('Processing resume information...');
-      console.log("Resume data received:", !!data.pdfData); // Debug log
       if (data && data.pdfData) {
         setResume(data);
         setLoadingState('Resume loaded successfully!');
       } else {
-        setError("No PDF data found in resume");
+        setResume(null);
       }
     } catch (error) {
       console.error("Error fetching resume:", error);
       setError(error.message);
+      setResume(null);
     } finally {
       setTimeout(() => {
         setLoading(false);
