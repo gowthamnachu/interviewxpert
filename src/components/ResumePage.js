@@ -77,8 +77,10 @@ const ResumePage = () => {
   };
 
   // Handle PDF generation and store in localStorage
-  const handleDownloadResume = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
+      // Generate PDF
       const doc = new jsPDF();
 
       // Add the profile picture if it exists
@@ -190,6 +192,7 @@ const ResumePage = () => {
       
       console.log('Saving resume to:', `${config.apiUrl}/resume`);
       
+      let responseData;
       const response = await fetch(`${config.apiUrl}/resume`, {
         method: isEditing ? "PUT" : "POST",
         headers: {
@@ -211,18 +214,20 @@ const ResumePage = () => {
         })
       });
 
-      const data = await response.json();
+      // Read the response data once
+      responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.error || `Server error: ${response.status}`);
+        throw new Error(responseData.error || `Server responded with status ${response.status}`);
       }
 
-      const result = await response.json();
-      console.log('Resume saved successfully:', result);
+      console.log('Resume saved successfully:', responseData);
 
       setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
       doc.save(`${name}_resume.pdf`);
       
       setTimeout(() => {
+        setMessage("");
         navigate("/profile");
       }, 2000);
     } catch (error) {
@@ -347,7 +352,7 @@ const ResumePage = () => {
 
         <button
           type="button"
-          onClick={handleDownloadResume}
+          onClick={handleSubmit}
           disabled={!name || !email || !phone || !education || !experience || !skills}
         >
           {isEditing ? "Update Resume" : "Generate Professional Resume"}
