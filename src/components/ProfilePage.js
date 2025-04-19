@@ -29,7 +29,7 @@ const ProfilePage = () => {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`${config.apiUrl}/certificates`, {
+      const response = await fetch(`${config.apiUrl}/certificates/user`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -48,7 +48,7 @@ const ProfilePage = () => {
       }
 
       const data = await response.json();
-      setCertificates(Array.isArray(data) ? data : []);
+      setCertificates(Array.isArray(data) ? data.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate)) : []);
     } catch (error) {
       console.error('Certificate fetch error:', error);
       setError(`Failed to load certificates: ${error.message}`);
@@ -63,15 +63,15 @@ const ProfilePage = () => {
       setLoading(true);
       setLoadingState('Fetching resume data...');
       setError(null);
-      const token = localStorage.getItem("token");
       
+      const token = localStorage.getItem("token");
       if (!token) {
-        throw new Error("Authentication token missing");
+        throw new Error('Please log in to access your resume');
       }
 
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -84,7 +84,7 @@ const ProfilePage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Server responded with status ${response.status}`);
+        throw new Error(errorData.error || `Failed to fetch resume (${response.status})`);
       }
 
       const data = await response.json();
@@ -95,7 +95,7 @@ const ProfilePage = () => {
         setLoadingState('Resume loaded successfully!');
       } else {
         setResume(null);
-        setLoadingState('');
+        setLoadingState('No resume found');
       }
     } catch (error) {
       console.error("Error fetching resume:", error);
@@ -128,7 +128,7 @@ const ProfilePage = () => {
 
     fetchResume();
     fetchCertificates();
-  }, [navigate, fetchCertificates, fetchResume]);
+  }, [navigate, fetchResume, fetchCertificates]);
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
@@ -269,50 +269,65 @@ const ProfilePage = () => {
   );
 
   const renderCertificates = () => (
-    <div className="certificates-grid">
-      {error ? (
-        <div className="error-message">{error}</div>
-      ) : loading ? (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <div className="loading-text">Loading certificates...</div>
-        </div>
-      ) : certificates.length > 0 ? (
-        certificates.map((cert) => (
-          <div key={cert._id || cert.certificateId} className="certificate-card">
-            <FaCertificate className="certificate-icon" />
-            <div className="certificate-info">
-              <h4>{cert.domain}</h4>
-              <p>Score: {cert.score}%</p>
-              <p>Grade: {cert.grade}</p>
-              <p>Badge Level: {cert.badgeLevel}</p>
-              <p>Issue Date: {new Date(cert.issueDate).toLocaleDateString()}</p>
-              <p>Expires: {new Date(cert.expiryDate).toLocaleDateString()}</p>
-              <p className="certificate-id">ID: {cert.certificateId}</p>
-              <div className="certificate-actions">
-                <button 
-                  className="verify-btn"
-                  onClick={() => window.open(`/verify-certificate/${cert.certificateId}`, '_blank')}
-                >
-                  Verify
-                </button>
-                <button 
-                  className="delete-btn"
-                  onClick={() => handleDeleteCertificate(cert._id)}
-                >
-                  <FaTrash /> Delete
-                </button>
+    <div className="profile-section certificates-section">
+      <div className="section-header">
+        <h3>Professional Certifications</h3>
+        <p className="section-description">Your earned certificates and achievements</p>
+      </div>
+      
+      <div className="certificates-grid">
+        {error ? (
+          <div className="error-message fade-in">{error}</div>
+        ) : loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p className="loading-text">Loading your certificates...</p>
+          </div>
+        ) : certificates.length > 0 ? (
+          certificates.map((cert) => (
+            <div key={cert._id || cert.certificateId} className="certificate-card fade-in">
+              <FaCertificate className="certificate-icon" />
+              <div className="certificate-info">
+                <h4>{cert.domain}</h4>
+                <div className="certificate-details">
+                  <p><strong>Score:</strong> {cert.score}% - {cert.grade}</p>
+                  <p><strong>Badge Level:</strong> {cert.badgeLevel}</p>
+                  <p><strong>Issue Date:</strong> {new Date(cert.issueDate).toLocaleDateString()}</p>
+                  <p><strong>Valid Until:</strong> {new Date(cert.expiryDate).toLocaleDateString()}</p>
+                  <p className="certificate-id">ID: {cert.certificateId}</p>
+                </div>
+                <div className="certificate-actions">
+                  <button 
+                    className="verify-btn"
+                    onClick={() => window.open(`/verify-certificate/${cert.certificateId}`, '_blank')}
+                  >
+                    <FaCertificate /> Verify
+                  </button>
+                  <button 
+                    className="delete-btn"
+                    onClick={() => handleDeleteCertificate(cert._id)}
+                    title="Delete Certificate"
+                  >
+                    <FaTrash /> Delete
+                  </button>
+                </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="empty-state fade-in">
+            <FaCertificate className="empty-icon" />
+            <h4>No Certificates Yet</h4>
+            <p>Complete mock tests to earn your professional certificates</p>
+            <button 
+              className="create-resume-btn"
+              onClick={() => navigate('/mock-test')}
+            >
+              Take a Mock Test
+            </button>
           </div>
-        ))
-      ) : (
-        <div className="no-certificates">
-          <FaCertificate className="no-certificates-icon" />
-          <p>No certificates found</p>
-          <p className="sub-text">Complete mock tests to earn certificates</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 

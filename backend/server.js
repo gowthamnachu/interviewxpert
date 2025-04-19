@@ -219,17 +219,40 @@ app.post("/api/resume", verifyToken, async (req, res) => {
 
 app.get("/api/resume", verifyToken, async (req, res) => {
   try {
-    const resume = await Resume.findOne({ userId: req.user.userId });
-    
-    if (!resume) {
-      return res.status(404).json({ error: "Resume not found" });
+    if (!req.user || !req.user.userId) {
+      console.error("Invalid user authentication");
+      return res.status(401).json({ error: "Invalid user authentication" });
     }
 
-    console.log("PDF data exists:", !!resume.pdfData); // Debug log
+    console.log("Fetching resume for user:", req.user.userId);
+    const resume = await Resume.findOne({ userId: req.user.userId })
+      .select('-__v') // Exclude version field
+      .lean(); // Convert to plain JavaScript object
+    
+    if (!resume) {
+      console.log("No resume found for user:", req.user.userId);
+      return res.status(200).json({}); // Return empty object for new users
+    }
+
+    // Validate PDF data
+    if (!resume.pdfData) {
+      console.warn("Resume found but missing PDF data for user:", req.user.userId);
+      return res.status(200).json({ 
+        ...resume,
+        warning: "PDF data is missing. Please regenerate your resume."
+      });
+    }
+
+    // Return success
+    console.log("Resume fetch successful for user:", req.user.userId);
     res.json(resume);
+
   } catch (error) {
     console.error("Resume fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch resume" });
+    res.status(500).json({ 
+      error: "Failed to fetch resume",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 
