@@ -109,30 +109,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Define Resume Schema if not already defined
-const resumeSchema = new mongoose.Schema({
-  userId: {
-    type: String,
-    required: true
-  },
-  name: String,
-  email: String,
-  phone: String,
-  education: String,
-  experience: String,
-  skills: String,
-  languages: String,
-  volunteerExperience: String,
-  photo: String,
-  pdfData: String,
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
-const Resume = mongoose.models.Resume || mongoose.model('Resume', resumeSchema);
-
 // Your existing routes go here
 app.post('/.netlify/functions/api/register', async (req, res) => {
   try {
@@ -228,25 +204,12 @@ app.post('/.netlify/functions/api/login', async (req, res) => {
 
 // Protected routes
 app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
   try {
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
     const resume = await Resume.findOne({ userId: req.user.userId });
-    if (!resume) {
-      return res.status(404).json({ error: "Resume not found" });
-    }
-
-    console.log('Resume fetched successfully:', resume._id);
-    return res.json(resume);
+    res.json(resume || {});
   } catch (error) {
     console.error('Resume fetch error:', error);
-    return res.status(500).json({ 
-      error: "Failed to fetch resume",
-      details: error.message 
-    });
+    res.status(500).json({ error: "Failed to fetch resume" });
   }
 });
 
@@ -257,32 +220,24 @@ app.post('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // Validate required fields
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ error: "Name and email are required" });
+    const resumeData = { ...req.body, userId: req.user.userId };
+    let resume;
+
+    try {
+      resume = await Resume.findOneAndUpdate(
+        { userId: req.user.userId },
+        resumeData,
+        { new: true, upsert: true }
+      );
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return res.status(500).json({ error: "Database operation failed" });
     }
 
-    const resumeData = { 
-      ...req.body, 
-      userId: req.user.userId,
-      updatedAt: new Date()
-    };
-
-    const resume = await Resume.findOneAndUpdate(
-      { userId: req.user.userId },
-      resumeData,
-      { new: true, upsert: true, runValidators: true }
-    );
-
-    console.log('Resume saved successfully:', resume._id);
     return res.status(201).json(resume);
   } catch (error) {
     console.error('Resume save error:', error);
-    return res.status(500).json({ 
-      error: "Failed to save resume",
-      details: error.message 
-    });
+    return res.status(500).json({ error: error.message || "Failed to save resume" });
   }
 });
 

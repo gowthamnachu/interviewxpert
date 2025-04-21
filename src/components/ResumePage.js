@@ -25,7 +25,6 @@ const ResumePage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
-  const [error, setError] = useState(null);
 
   // Predefined summary, skills, awards
   const summary = "A highly motivated and results-driven individual with a passion for technology and problem-solving. Seeking to contribute skills and knowledge to a dynamic team.";
@@ -71,43 +70,27 @@ const ResumePage = () => {
 
   const fetchResume = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const token = localStorage.getItem("token");
-      
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-  
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-  
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || data.details || 'Failed to fetch resume');
-      }
-  
-      const resumeData = await response.json();
-      if (resumeData && Object.keys(resumeData).length > 0) {
-        setName(resumeData.name || "");
-        setEmail(resumeData.email || "");
-        setPhone(resumeData.phone || "");
-        setEducation(resumeData.education || "");
-        setExperience(resumeData.experience || "");
-        setSkills(resumeData.skills || "");
-        setLanguages(resumeData.languages || "");
-        setVolunteerExperience(resumeData.volunteerExperience || "");
-        if (resumeData.photo) setPhoto(resumeData.photo);
+      const data = await response.json();
+      if (data) {
+        setName(data.name || "");
+        setEmail(data.email || "");
+        setPhone(data.phone || "");
+        setEducation(data.education || "");
+        setExperience(data.experience || "");
+        setSkills(data.skills || "");
+        setLanguages(data.languages || "");
+        setVolunteerExperience(data.volunteerExperience || "");
+        if (data.photo) setPhoto(data.photo);
       }
     } catch (error) {
-      console.error("Resume fetch error:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching resume:", error);
     }
   };
 
@@ -416,7 +399,6 @@ const ResumePage = () => {
         </button>
       </form>
       {message && <div className="success-message">{message}</div>}
-      {error && <div className="error-message">{error}</div>}
     </div>
   );
 };
