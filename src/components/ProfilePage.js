@@ -205,19 +205,26 @@ const ProfilePage = () => {
       }
 
       const response = await fetch(`${config.apiUrl}/resume`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      if (response.status === 404) {
-        throw new Error("Resume not found");
+      if (response.status === 401) {
+        localStorage.clear();
+        navigate("/login");
+        return;
       }
 
+      if (response.status === 404) {
+        setError("Resume not found");
+        return;
+      }
+
+      const data = await response.json();
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to delete resume');
       }
 
@@ -225,8 +232,11 @@ const ProfilePage = () => {
       setMessage("Resume deleted successfully");
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
-      console.error("Resume deletion error:", error);
-      setError(error.message);
+      console.error("Resume deletion error:", {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(error.message || "Failed to delete resume");
       setTimeout(() => setError(null), 3000);
     }
   };
@@ -234,7 +244,8 @@ const ProfilePage = () => {
   const handleEditResume = () => {
     try {
       if (!resume) {
-        throw new Error('No resume data available');
+        setError('No resume data available');
+        return;
       }
       navigate('/build-resume', { 
         state: { 
@@ -243,8 +254,12 @@ const ProfilePage = () => {
         } 
       });
     } catch (error) {
-      console.error('Resume edit error:', error);
-      setError('Failed to edit resume');
+      console.error('Resume edit error:', {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(error.message || 'Failed to edit resume');
+      setTimeout(() => setError(null), 3000);
     }
   };
 
