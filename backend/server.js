@@ -258,30 +258,16 @@ app.put("/api/resume", verifyToken, async (req, res) => {
 
 app.delete("/api/resume", verifyToken, async (req, res) => {
   try {
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
     const result = await Resume.findOneAndDelete({ userId: req.user.userId });
     
     if (!result) {
       return res.status(404).json({ error: "Resume not found" });
     }
     
-    res.json({ 
-      message: "Resume deleted successfully",
-      status: "success" 
-    });
+    res.json({ message: "Resume deleted successfully" });
   } catch (error) {
-    console.error("Resume deletion error:", {
-      message: error.message,
-      stack: error.stack,
-      userId: req.user?.userId
-    });
-    res.status(500).json({ 
-      error: error.message || "Failed to delete resume",
-      status: "error"
-    });
+    console.error("Resume deletion error:", error);
+    res.status(500).json({ error: error.message || "Failed to delete resume" });
   }
 });
 
