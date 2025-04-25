@@ -214,15 +214,24 @@ app.get('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
 });
 
 app.post('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
   try {
     if (!req.user || !req.user.userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
     const resumeData = { ...req.body, userId: req.user.userId };
-    let resume;
+    
+    // Validate required fields
+    const requiredFields = ['name', 'email', 'phone', 'education', 'experience', 'skills'];
+    const missingFields = requiredFields.filter(field => !resumeData[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: `Missing required fields: ${missingFields.join(', ')}` 
+      });
+    }
 
+    let resume;
     try {
       resume = await Resume.findOneAndUpdate(
         { userId: req.user.userId },
@@ -231,13 +240,16 @@ app.post('/.netlify/functions/api/resume', verifyToken, async (req, res) => {
       );
     } catch (dbError) {
       console.error('Database error:', dbError);
-      return res.status(500).json({ error: "Database operation failed" });
+      throw new Error("Database operation failed");
     }
 
-    return res.status(201).json(resume);
+    res.status(201).json(resume);
   } catch (error) {
     console.error('Resume save error:', error);
-    return res.status(500).json({ error: error.message || "Failed to save resume" });
+    res.status(500).json({ 
+      error: error.message || "Failed to save resume",
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
