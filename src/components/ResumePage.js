@@ -25,7 +25,6 @@ const ResumePage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
-  const [error, setError] = useState(null); // Improved error handling with state
 
   // Predefined summary, skills, awards
   const summary = "A highly motivated and results-driven individual with a passion for technology and problem-solving. Seeking to contribute skills and knowledge to a dynamic team.";
@@ -34,20 +33,15 @@ const ResumePage = () => {
 
   useEffect(() => {
     if (isEditing && resumeData) {
-      try {
-        setName(resumeData.name || "");
-        setEmail(resumeData.email || "");
-        setPhone(resumeData.phone || "");
-        setEducation(resumeData.education || "");
-        setExperience(resumeData.experience || "");
-        setSkills(resumeData.skills || "");
-        setLanguages(resumeData.languages || "");
-        setVolunteerExperience(resumeData.volunteerExperience || "");
-        if (resumeData.photo) setPhoto(resumeData.photo);
-      } catch (error) {
-        setError("Failed to load resume data");
-        console.error("Resume data loading error:", error);
-      }
+      setName(resumeData.name || "");
+      setEmail(resumeData.email || "");
+      setPhone(resumeData.phone || "");
+      setEducation(resumeData.education || "");
+      setExperience(resumeData.experience || "");
+      setSkills(resumeData.skills || "");
+      setLanguages(resumeData.languages || "");
+      setVolunteerExperience(resumeData.volunteerExperience || "");
+      if (resumeData.photo) setPhoto(resumeData.photo);
     } else {
       fetchResume();
     }
@@ -77,21 +71,12 @@ const ResumePage = () => {
   const fetchResume = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Authentication required");
-      }
-
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch resume");
-      }
-
       const data = await response.json();
       if (data) {
         setName(data.name || "");
@@ -105,10 +90,7 @@ const ResumePage = () => {
         if (data.photo) setPhoto(data.photo);
       }
     } catch (error) {
-      setError("Failed to fetch resume data");
       console.error("Error fetching resume:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -120,97 +102,158 @@ const ResumePage = () => {
     }
   };
 
-  // Improved form validation
-  const validateForm = () => {
-    if (!name || !email || !phone || !education || !experience || !skills) {
-      setError("Please fill in all required fields");
-      return false;
-    }
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      setError("Please enter a valid email address");
-      return false;
-    }
-    return true;
-  };
-
   // Handle PDF generation and store in localStorage
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-    
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authentication required");
       }
 
-      // Generate PDF first
       const doc = new jsPDF();
-      // ...existing PDF generation code...
 
-      // Get base64 string of PDF
-      const pdfBase64 = doc.output('datauristring');
-
-      // Try both endpoints
-      const endpoint = `${config.apiUrl}/resume`;
-      const netlifyEndpoint = `/.netlify/functions/api/resume`;
-      
-      let response;
-      try {
-        response = await fetch(endpoint, {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            phone,
-            education,
-            experience,
-            skills,
-            languages,
-            volunteerExperience,
-            photo,
-            pdfData: pdfBase64,
-            updatedAt: new Date().toISOString()
-          })
-        });
-      } catch (err) {
-        // If first endpoint fails, try Netlify endpoint
-        response = await fetch(netlifyEndpoint, {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            phone,
-            education,
-            experience,
-            skills,
-            languages,
-            volunteerExperience,
-            photo,
-            pdfData: pdfBase64,
-            updatedAt: new Date().toISOString()
-          })
-        });
+      // Add the profile picture if it exists
+      if (photo) {
+        doc.addImage(photo, "JPEG", 150, 15, 50, 50); // Image position and size
       }
 
+      // Title and Header Section
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Resume", 70, 20); // Add title
+
+      // Personal Information Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Name: ", 20, 60);
+      doc.setFontSize(12);
+      doc.text(name, 40, 60);
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Email: ", 20, 70);
+      doc.setFontSize(12);
+      doc.text(email, 40, 70);
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Phone: ", 20, 80);
+      doc.setFontSize(12);
+      doc.text(phone, 40, 80);
+
+      // Divider line
+      doc.setLineWidth(0.5);
+      doc.line(20, 85, 190, 85);
+
+      // Summary Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Summary:", 20, 100);
+      doc.setFontSize(12);
+      doc.text(summary, 20, 110, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 120, 190, 120);
+
+      // Education Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Education:", 20, 130);
+      doc.setFontSize(12);
+      doc.text(education || "Bachelor's in Computer Science", 20, 140, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 150, 190, 150);
+
+      // Work Experience Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Work Experience:", 20, 160);
+      doc.setFontSize(12);
+      doc.text(experience || "Software Developer at XYZ Corp", 20, 170, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 180, 190, 180);
+
+      // Skills Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Skills:", 20, 190);
+      doc.setFontSize(12);
+      doc.text(skills || predefinedSkills, 20, 200, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 210, 190, 210);
+
+      // Awards Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Awards and Honors:", 20, 220);
+      doc.setFontSize(12);
+      doc.text(awards, 20, 230, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 240, 190, 240);
+
+      // Languages Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Languages:", 20, 250);
+      doc.setFontSize(12);
+      doc.text(languages || "English, Spanish", 20, 260, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 270, 190, 270);
+
+      // Volunteer Experience Section
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Volunteer Experience:", 20, 280);
+      doc.setFontSize(12);
+      doc.text(volunteerExperience || "Volunteer Developer at Local NGO", 20, 290, { maxWidth: 180 });
+
+      // Divider line
+      doc.line(20, 300, 190, 300);
+
+      // Convert the PDF to a base64 string
+      const pdfBase64 = doc.output('datauristring');
+
+      const response = await fetch('/.netlify/functions/api/resume', {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          education,
+          experience,
+          skills,
+          languages,
+          volunteerExperience,
+          photo,
+          pdfData: pdfBase64,
+          updatedAt: new Date().toISOString()
+        })
+      });
+
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Received invalid response from server");
+      }
+
+      const data = await response.json();
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to save resume');
       }
 
-      // Save PDF locally
+      setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
       doc.save(`${name}_resume.pdf`);
       
-      setMessage(isEditing ? "Resume Updated Successfully!" : "Resume Created Successfully!");
       setTimeout(() => {
         setMessage("");
         navigate("/profile");
@@ -218,9 +261,7 @@ const ResumePage = () => {
 
     } catch (error) {
       console.error("Resume operation error:", error);
-      setError(error.message || "Failed to save resume. Please try again.");
-    } finally {
-      setLoading(false);
+      setMessage(error.message);
     }
   };
 
@@ -239,8 +280,7 @@ const ResumePage = () => {
   return (
     <div className="resume-container">
       <h2>{isEditing ? "Edit Your Resume" : "Create Your Professional Resume"}</h2>
-      {error && <div className="error-message">{error}</div>}
-      <form onSubmit={handleSubmit}>
+      <form>
         <div className="form-section">
           <label>
             Profile Photo
@@ -351,7 +391,8 @@ const ResumePage = () => {
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={!name || !email || !phone || !education || !experience || !skills}
         >
           {isEditing ? "Update Resume" : "Generate Professional Resume"}
