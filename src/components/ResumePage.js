@@ -25,6 +25,7 @@ const ResumePage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentLoadingStage, setCurrentLoadingStage] = useState(0);
+  const [error, setError] = useState(null); // Improved error handling with state
 
   // Predefined summary, skills, awards
   const summary = "A highly motivated and results-driven individual with a passion for technology and problem-solving. Seeking to contribute skills and knowledge to a dynamic team.";
@@ -33,15 +34,20 @@ const ResumePage = () => {
 
   useEffect(() => {
     if (isEditing && resumeData) {
-      setName(resumeData.name || "");
-      setEmail(resumeData.email || "");
-      setPhone(resumeData.phone || "");
-      setEducation(resumeData.education || "");
-      setExperience(resumeData.experience || "");
-      setSkills(resumeData.skills || "");
-      setLanguages(resumeData.languages || "");
-      setVolunteerExperience(resumeData.volunteerExperience || "");
-      if (resumeData.photo) setPhoto(resumeData.photo);
+      try {
+        setName(resumeData.name || "");
+        setEmail(resumeData.email || "");
+        setPhone(resumeData.phone || "");
+        setEducation(resumeData.education || "");
+        setExperience(resumeData.experience || "");
+        setSkills(resumeData.skills || "");
+        setLanguages(resumeData.languages || "");
+        setVolunteerExperience(resumeData.volunteerExperience || "");
+        if (resumeData.photo) setPhoto(resumeData.photo);
+      } catch (error) {
+        setError("Failed to load resume data");
+        console.error("Resume data loading error:", error);
+      }
     } else {
       fetchResume();
     }
@@ -71,12 +77,21 @@ const ResumePage = () => {
   const fetchResume = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
       const response = await fetch(`${config.apiUrl}/resume`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch resume");
+      }
+
       const data = await response.json();
       if (data) {
         setName(data.name || "");
@@ -90,7 +105,10 @@ const ResumePage = () => {
         if (data.photo) setPhoto(data.photo);
       }
     } catch (error) {
+      setError("Failed to fetch resume data");
       console.error("Error fetching resume:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,10 +120,30 @@ const ResumePage = () => {
     }
   };
 
+  // Improved form validation
+  const validateForm = () => {
+    if (!name || !email || !phone || !education || !experience || !skills) {
+      setError("Please fill in all required fields");
+      return false;
+    }
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    return true;
+  };
+
   // Handle PDF generation and store in localStorage
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    
+    if (!validateForm()) {
+      return;
+    }
+
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authentication required");
@@ -219,7 +257,7 @@ const ResumePage = () => {
       // Convert the PDF to a base64 string
       const pdfBase64 = doc.output('datauristring');
 
-      const response = await fetch('/.netlify/functions/api/resume', {
+      const response = await fetch(`${config.apiUrl}/resume`, {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,14 +278,8 @@ const ResumePage = () => {
         })
       });
 
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Received invalid response from server");
-      }
-
-      const data = await response.json();
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Failed to save resume');
       }
 
@@ -260,8 +292,10 @@ const ResumePage = () => {
       }, 2000);
 
     } catch (error) {
+      setError(error.message || "Failed to save resume");
       console.error("Resume operation error:", error);
-      setMessage(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -280,7 +314,8 @@ const ResumePage = () => {
   return (
     <div className="resume-container">
       <h2>{isEditing ? "Edit Your Resume" : "Create Your Professional Resume"}</h2>
-      <form>
+      {error && <div className="error-message">{error}</div>}
+      <form onSubmit={handleSubmit}>
         <div className="form-section">
           <label>
             Profile Photo
@@ -391,8 +426,7 @@ const ResumePage = () => {
         </div>
 
         <button
-          type="button"
-          onClick={handleSubmit}
+          type="submit"
           disabled={!name || !email || !phone || !education || !experience || !skills}
         >
           {isEditing ? "Update Resume" : "Generate Professional Resume"}

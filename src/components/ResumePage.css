@@ -130,6 +130,18 @@ button:disabled {
   z-index: 1000;
 }
 
+.error-message {
+  background: linear-gradient(135deg, #ff4d4d 0%, #ff1a1a 100%);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(255, 77, 77, 0.4);
+  animation: slideDown 0.5s ease-out forwards;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
