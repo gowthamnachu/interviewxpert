@@ -135,6 +135,13 @@ const HomePage = () => {
               Developer of InterviewXpert.
             </p>
           </div>
+           <div className="developer-card">
+            <h3>Gajji Praveensai</h3>
+            <p className="developer-role">Full Stack Developer</p>
+            <p className="developer-description">
+              Developer of InterviewXpert.
+            </p>
+          </div>
         </div>
       </div>
     </div>
